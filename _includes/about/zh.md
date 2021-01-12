@@ -7,7 +7,7 @@ hi,我是 **超小弟** ,一名秃头运维,现在北京工作。
 
 这是我的利用 [GitHub Pages](https://pages.github.com/) 与 [Jekyll](http://jekyll.com.cn/) 搭建的个人博客。
 
-在这里完成对平时工作、学习的一些总结与记录。
+在这里对平时工作、学习的过程进行总结与记录。
 
 我在GitHub主页👉[GitHub·CXD](https://github.com/chaoxiaodi)
 
@@ -17,15 +17,15 @@ hi,我是 **超小弟** ,一名秃头运维,现在北京工作。
 
 ---
 ### skill & language
-###### `shell` `python` `javascript`
-###### `MySQL` `MariaDB` `Redis`
-###### `VUE` `Django` `DevOps` `SRE`
-###### `Git` `SVN`
-###### `Centos` `Debian` `windows`
-###### `CI/CD` `Ansible` `Jenkins` `Zabbix` `ELK`
-###### `OpenStack` `Docker` `K8S` `vSphere` `Hyper`
-###### `Network` `H3C` `Cisco`
-###### `aliyun` `qcloud` `AWS`
+ `shell` `python` `javascript`<br>
+ `MySQL` `MariaDB` `Redis`<br>
+ `VUE` `Django` `DevOps` `SRE`<br>
+ `Git` `SVN`<br>
+ `Centos` `Debian` `windows`<br>
+ `CI/CD` `Ansible` `Jenkins` `Zabbix` `ELK`<br>
+ `OpenStack` `Docker` `K8S` `vSphere` `Hyper-v`<br>
+ `Network` `H3C` `Cisco`<br>
+ `aliyun` `qcloud` `AWS`<br>
 
 ***
 
