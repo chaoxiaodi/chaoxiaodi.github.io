@@ -7,7 +7,7 @@ hi，我是**超小弟**,一名秃头运维，现在北京工作。
 
 这是我的利用 [GitHub Pages](https://pages.github.com/) 与 [Jekyll](http://jekyll.com.cn/) 搭建的个人博客。
 
-我在GitHub主页👉[GitHub·CXD](https://github.com/chaoxiaod)
+我在GitHub主页👉[GitHub·CXD](https://github.com/chaoxiaodi)
 
 我在知乎主页👉[老骥不伏枥](https://www.zhihu.com/people/chao-liu-99-16)
  
