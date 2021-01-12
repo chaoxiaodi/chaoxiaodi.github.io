@@ -17,15 +17,15 @@ hi,我是 **超小弟** ,一名秃头运维,现在北京工作。
 
 ---
 ### skill & language
-#### `shell` `python` `javascript`
-#### `MySQL` `MariaDB` `Redis`
-#### `VUE` `Django` `DevOps` `SRE`
-#### `Git` `SVN`
-#### `Centos` `Debian` `windows`
-#### `CI/CD` `Ansible` `Jenkins` `Zabbix` `ELK`
-#### `OpenStack` `Docker` `K8S` `vSphere` `Hyper`
-#### `Network` `H3C` `Cisco`
-#### `aliyun` `qcloud` `AWS`
+###### `shell` `python` `javascript`
+###### `MySQL` `MariaDB` `Redis`
+###### `VUE` `Django` `DevOps` `SRE`
+###### `Git` `SVN`
+###### `Centos` `Debian` `windows`
+###### `CI/CD` `Ansible` `Jenkins` `Zabbix` `ELK`
+###### `OpenStack` `Docker` `K8S` `vSphere` `Hyper`
+###### `Network` `H3C` `Cisco`
+###### `aliyun` `qcloud` `AWS`
 
 ***
 
