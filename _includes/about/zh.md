@@ -17,11 +17,7 @@ hi,我是 **超小弟** ,一名秃头运维,现在北京工作。
 
 ---
 ### skill & language
-<font face="微软雅黑" color=#0099ff >shell</font>
-<font face="微软雅黑" color=#0099ff >python</font>
-<font face="微软雅黑" color=#0099ff >javascript</font>
-<font face="微软雅黑" color=#0099ff >vue</font>
-<font face="微软雅黑" color=#0099ff >html</font>
+### **`shell`** _`python`_ **`javascript`** `vue`
 
 ***
 
