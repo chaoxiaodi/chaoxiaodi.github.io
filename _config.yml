@@ -13,7 +13,7 @@ future: true
 
 # SNS settings
 RSS: false
-#weibo_username:     chaoxiaodi
+weibo_username:     chaoxiaodi1314
 zhihu_username:     chao-liu-99-16
 github_username:    chaoxiaodi
 #twitter_username:   chaoxiaodi
