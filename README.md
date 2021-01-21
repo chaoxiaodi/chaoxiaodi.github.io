@@ -1,8 +1,7 @@
 # chaoxiaodi.github.io
 chaoxiaodi's blog
-# Hux blog 模板
 
-### [我的博客在这里 &rarr;](http://huxpro.github.io)
+### [原博主博客在这里 &rarr;](http://huxpro.github.io)
 
 
 ### 关于收到"Page Build Warning"的email
