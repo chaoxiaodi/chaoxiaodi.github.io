@@ -41,12 +41,10 @@ tags:
 
 得益于 vue 的变量绑定吧，不用来回进行父组件与子组件之间的事件就能完成验证码的功能了。
     
-    `
     watch: {
     identifyCode() {
       this.drawPic()
     }
-    `
     
 针对验证码插件的介绍就这么多，感兴趣的可以自行查看原作者的源码。或我修改后的源码
     
@@ -70,7 +68,6 @@ tags:
 
 我这专业人员的思路就是照猫画虎，思考了下验证码大概的逻辑首先按照密码框的样式增加一个验证码输入框；
     
-    `
     <el-form-item prop="identify">
         <span class="svg-container">
           <svg-icon icon-class="identify" />
@@ -87,7 +84,7 @@ tags:
           <SIdentify :identify-code="identifyCode" />
         </span>
      </el-form-item>
-    `
+
 通过单击验证码可以实现刷新操作
     
 ### 验证码具体的逻辑
@@ -98,7 +95,6 @@ tags:
 
 随机生成纯数字验证码或计算验证码
     
-    `
     // 制作验证码
     makeCode() {
       this.identifyCode = ''
@@ -109,11 +105,9 @@ tags:
       } else { this.makeComputeCode() }
       // console.log(this.identifyCode, this.resultIdentifyCode)
     }
-    `
     
 生成纯数字验证码，可以传递参数生成具体的位数，我生成的是 4位数字的验证码
     
-    `
     // 纯数字验证码
     makeNumCode(l) {
       for (let i = 0; i < l; i++) {
@@ -121,12 +115,10 @@ tags:
       }
       this.resultIdentifyCode = this.identifyCode
     }
-    `
     
 生成计算验证码，变量起名真的太难了~原谅我使用了 x y z如此无礼的变量
     
     // 计算验证码
-    `
     makeComputeCode() {
       const x = this.randomNum(1, 10) // 第一个数字
       const y = this.randomNum(1, 10) // 第二个数字
@@ -150,7 +142,6 @@ tags:
         this.resultIdentifyCode = x * y
       }
     }
-    `
     
 两个生成验证码的方法都调用了，生成随机数的方法，本来还想生成英文还一直在todo列表搁置
     
@@ -158,20 +149,16 @@ tags:
     
     [pytodolist](https://github.com/chaoxiaodi/pytodolist)
     
-    `
     // 验证码abcdefghijklnmopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
     randomNum(min, max) {
       return Math.floor(Math.random() * (max - min) + min)
     }
-    `
     
 在页面挂载的时候进行验证码的绘制
     
-    `
     mounted() {
       this.makeCode()
     }
-    `
     
 涉及到的两个变量 resultIdentifyCode、identifyCode
 
@@ -183,7 +170,6 @@ resultIdentifyCode：存放验证码的结果，最后根据输入框的进行�
 
 登录按钮代码修改
     
-    `
     // 登录按钮
     handleLogin() {
       this.$refs.loginForm.validate(valid => {
@@ -201,13 +187,11 @@ resultIdentifyCode：存放验证码的结果，最后根据输入框的进行�
         }
       })
     }
-    `
-    
+     
 如果表单验证并且验证码正确，开始执行对应的登录逻辑
     
 验证码校验方法
     
-    `
     // 检查验证码
     checkIdentifyCode() {
       if (this.loginForm.identify !== String(this.resultIdentifyCode)) {
@@ -215,7 +199,6 @@ resultIdentifyCode：存放验证码的结果，最后根据输入框的进行�
         return false
       } else { return true }
     }
-    `
 
 ### 后记
     
