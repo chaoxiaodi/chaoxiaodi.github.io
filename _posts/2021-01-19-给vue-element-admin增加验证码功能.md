@@ -145,9 +145,9 @@ tags:
     
 两个生成验证码的方法都调用了，生成随机数的方法，本来还想生成英文还一直在todo列表搁置
     
-    提到todo顺便提一句使用python实现的一个todolist的小工具
+提到todo顺便提一句使用python实现的一个todolist的小工具
     
-    [pytodolist](https://github.com/chaoxiaodi/pytodolist)
+[pytodolist](https://github.com/chaoxiaodi/pytodolist)
     
     // 验证码abcdefghijklnmopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
     randomNum(min, max) {
