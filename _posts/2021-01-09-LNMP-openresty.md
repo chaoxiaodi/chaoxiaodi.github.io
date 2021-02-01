@@ -185,6 +185,8 @@ openresy 官网的对于安装也提供了对应的文档，对一些常见的li
     systemctl status nginx
     systemctl enable nginx
     
-    
+
+
+
 如果有任何问题或建议欢迎提出、讨论~
 
