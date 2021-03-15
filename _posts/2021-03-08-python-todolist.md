@@ -134,6 +134,12 @@ python的可视化方案有很多，我使用的是 pyqt 之前也用过tk
 
 另：求大佬给设计更好看的界面
 
+---我是超小弟·一名不误专业的秃头运维---
+
+博客：blog.chaoxiaodi.tech
+
+github：https://github.com/chaoxiaodi
+
 
 
 

@@ -135,6 +135,10 @@ ansible 是通过 python写的，官方文档给的一个api的例子说实话�
 
 ---我是超小弟·一名不误专业的秃头运维---
 
+博客：blog.chaoxiaodi.tech
+
+github：https://github.com/chaoxiaodi
+
 
 
 

@@ -207,3 +207,9 @@ resultIdentifyCode：存放验证码的结果，最后根据输入框的进行�
 作为一个开发小白，只能慢慢摸索，站在前人的肩膀上进行探索
     
 如果有任何想法欢迎反馈、讨论
+
+---我是超小弟·一名不误专业的秃头运维---
+
+博客：blog.chaoxiaodi.tech
+
+github：https://github.com/chaoxiaodi
