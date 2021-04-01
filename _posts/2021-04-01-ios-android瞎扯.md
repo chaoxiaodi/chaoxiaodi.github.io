@@ -8,6 +8,7 @@ tags:
   - iOS
   - Android
   - phone
+  - 杂记
 ---
 
 ### 前言
