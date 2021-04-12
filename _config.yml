@@ -85,5 +85,9 @@ friends: [
     {
          title: "hux",
          href: "https://huangxuan.me"
-     }
+    },
+    {
+      title: "canghai",
+      href: "https://blog.cactifans.com/"
+    }
 ]
