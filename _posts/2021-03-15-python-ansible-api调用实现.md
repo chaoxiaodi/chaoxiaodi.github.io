@@ -135,9 +135,9 @@ ansible 是通过 python写的，官方文档给的一个api的例子，说实�
 
 ---我是超小弟·一名不误专业的秃头运维---
 
-博客：blog.chaoxiaodi.tech
+博客：[blog.chaoxiaodi.tech](https://blog.chaoxiaodi.tech)
 
-github：https://github.com/chaoxiaodi
+github：[github:chaoxiaodi](https://github.com/chaoxiaodi)
 
 微信公众号：老骥不伏枥只是近黄昏
 
