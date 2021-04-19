@@ -15,6 +15,8 @@ hi,我是 **超小弟** ,一名秃头运维,现在北京工作。
  
 如果有什么问题，欢迎提出探讨~
 
+Q：594934249
+
 ---
 #### skill & language
  `shell` `python` `javascript`<br>
