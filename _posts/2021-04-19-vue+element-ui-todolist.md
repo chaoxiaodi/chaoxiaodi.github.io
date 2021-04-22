@@ -91,7 +91,7 @@ tags:
 
 #### 体验链接
 
-[vuetodolist](https://blog.chaoxiaodi.tech/todolist.html)
+[vuetodolist](https://blog.chaoxiaodi.tech/tools/todolist.html)
 
 我在我的博客放了一个体验链接
 
