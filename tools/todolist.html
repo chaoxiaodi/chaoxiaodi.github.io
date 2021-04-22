@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <!-- 每十分钟刷新一次页面 -->
+  <meta http-equiv="refresh" content="600">
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <!-- import Vue before Element -->
+  <script src="https://unpkg.com/vue/dist/vue.js"></script>
+  <!-- import Vuex -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.js"></script>
+  <script src="https://unpkg.com/vuex@3.6.2/dist/vuex.js"></script> -->
+  <!-- import JavaScript -->
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <title>todolist-vue-element</title>
+</head>
+<div id="app">
+  <el-container>
+    <el-header>
+        <el-avatar shape="square" :size="50" :src="squareUrl"></el-avatar>
+        <a style="font-size:20px;font-family:times;color:green">{{headTitle}}</a>
+    </el-header>
+    <el-container>
+      <el-aside width="300px">
+        <el-form class='elform'>
+          <el-form-item>
+            <el-date-picker
+            v-model="dtSelecter"
+            type="datetime"
+            placeholder="选择日期时间"
+            :clearable="false"
+            @change="handerDate">
+            </el-date-picker>
+          </el-form-item>
+        <el-form-item>
+          <el-radio-group v-model="radioJobTag">
+            <el-radio label="1" border>紧急重要</el-radio>
+            <el-radio label="2" border>紧急不重要</el-radio>
+            <el-radio label="3" border>重要不紧急</el-radio>
+            <el-radio label="4" border>不紧急不重要</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item>
+          <el-input
+          type="textarea"
+          show-word-limit
+          maxlength=64
+          :rows="4"
+          placeholder="请输入待办内容,不要超过64个字符"
+          v-model="textJobInfo">
+          </el-input>
+        </el-form-item>
+
+        <el-form-item>
+          <el-button type="primary"  icon="el-icon-edit" @click="buttonAdd">新 增</el-button>
+          <el-button type="success"  icon='el-icon-circle-check'@click="buttonDone">完 成</el-button>
+        </el-form-item>
+
+        <el-form-item >
+          <el-button type="primary" icon='el-icon-refresh' plain @click="buttonDay">日</el-button>
+          <el-button type="primary" icon='el-icon-refresh' plain @click="buttonWeek">周</el-button>
+          <el-button type="primary" icon='el-icon-refresh' plain @click="buttonMonth">月</el-button>
+        </el-form-item>
+
+        </el-form>
+      </el-aside>
+      <el-container>
+        <el-main >
+          <div>
+            <el-tree
+            :data="treeJobData"
+            node-key="id"
+            default-expand-all
+            highlight-current
+            ref="treeJob"
+            :props="defaultProps"
+            @node-click="treeCheckedChanged">
+            </el-tree>
+          </div>
+        </el-main>
+        <el-footer>copyright © 2021 <el-link href="https://github.com/chaoxiaodi/vuetodolist" type="primary">vuetodolist by chaoxiaodi</el-link></el-footer>
+      </el-container>
+    </el-container>
+  </el-container>
+  <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible">
+    <el-form>
+      <el-form-item>
+        <el-select v-model="dialogTimeSelectValue" filterable placeholder="请选择" @change='zqTimeChanged'>
+          <el-option
+            v-for="item in dialogTimeSelectData"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value">
+          </el-option>
+        </el-select>
+        <el-button type="primary"  icon="el-icon-edit" @click="buttonZQAdd">新 增</el-button>
+        <el-button type="warning"  icon='el-icon-delete'@click="buttonZQDelete">删 除</el-button>
+      </el-form-item>
+
+      <el-form-item>
+        <el-input
+        type="textarea"
+        show-word-limit
+        maxlength=64
+        :rows="4"
+        placeholder="请输入待办内容,不要超过64个字符"
+        v-model="zqtextJobInfo">
+        </el-input>
+      </el-form-item>
+
+      <el-form-item>
+        <el-table
+          :data="tableJobData"
+          stripe
+          style="width: 100%"
+          max-height="250"
+          @row-click="jobTableClick">
+          <el-table-column
+            prop="time"
+            label="时间"
+            width="120">
+          </el-table-column>
+          <el-table-column
+            prop="job"
+            label="任务">
+          </el-table-column>
+        </el-table>
+      </el-form-item>
+
+    </el-form>
+  </el-dialog>
+</div>
+
+<body>
+<!-- 方法属性计算 -->
+<script>
+  new Vue({ //记得声明，不然看不到element的input组件
+    el: '#app',
+    data: {
+      squareUrl: 'https://github.com/chaoxiaodi/vuetodolist/blob/main/todolist.png',
+      headTitle: '基于时间管理四象限的待办任务管理开源小工具',
+      dtSelecter: '', // 时间选择控件绑定变量
+      radioJobTag: '1', // 工作类型标签单选按钮绑定变量
+      textJobInfo: '', // 待办内容输入框绑定变量
+      textTips: '',
+      commonjob: [],
+      dayjob: [],
+      weekjob: [],
+      monthjob: [],
+      historyjob: [],
+      treeJobData: [],
+      defaultProps: {
+        children: 'children',
+        label: 'label'
+      },
+      treeJobCheckedId: '',
+      // 周期性任务相关变量
+      zqFlag: '',
+      dialogFormVisible: false,
+      dialogTitle: '',
+      dialogTimeSelectData: [],
+      dialogTimeSelectValue: '',
+      zqtextJobInfo: '',
+      tableJobData: [],
+      tableJobClicked: ''
+    },
+
+    created() {// 页面创建时方法
+      this.handerDate(new Date())
+      this.showInTree()
+    },
+
+    methods: {//这里用于定义方法
+      // 日期时间格式转换
+      handerDate(val) {
+        if(val !== '') {
+          const year = val.getFullYear() // 得到年份
+          let month = val.getMonth() // 得到月份
+          let date = val.getDate() // 得到日期
+          // const day = val.getDay() // 得到周几
+          let hour = val.getHours() // 得到小时
+          let minu = val.getMinutes() // 得到分钟
+          let sec = val.getSeconds() // 得到秒
+          const msec = val.getMilliseconds() // 得到毫秒
+          month = month + 1
+          if (month < 10) month = '0' + month
+          if (date < 10) date = '0' + date
+          if (hour < 10) hour = '0' + hour
+          if (minu < 10) minu = '0' + minu
+          if (sec < 10) sec = '0' + sec
+          this.dtSelecter = year + '-' + month + '-' +  date + ' ' + hour + ':' + minu + ':' + sec
+        }
+      },
+      // 获取所有展示状态的uuid列表，用于处理周期任务
+      getShowStateUuids() {
+        const isShowStateList = []
+        this.commonjob = this.getJob('commonjob')
+        const tmpMonth = this.dtSelecter.slice(0, 7)
+        this.historyjob = this.getJob(tmpMonth)
+
+        for (j = 0, len=this.commonjob.length; j < len; j++) {
+          const tmpuuid = this.commonjob[j].uuid
+          isShowStateList.push(tmpuuid)
+        }
+
+        for (j = 0, len=this.historyjob.length; j < len; j++) {
+          const tmpuuid = this.historyjob[j].uuid
+          isShowStateList.push(tmpuuid)
+        }
+        return isShowStateList
+      },
+      // 检查周期任务是否展示
+      // 符合条件的添加到common
+      checkDayJob() {
+        this.dayjob = this.getJob('dayjob')
+        const isShowStateList = this.getShowStateUuids()
+        for (j = 0, len=this.dayjob.length; j < len; j++) {
+          const tmpuuid = this.dayjob[j].uuid
+          if(! isShowStateList.includes(tmpuuid)) {
+            this.commonjob = this.getJob('commonjob')
+            this.commonjob.push(this.dayjob[j])
+            this.setJob('commonjob', this.commonjob)
+          }
+        }
+      },
+      checkWeekJob() {
+        const tmpWeek = new Date().getDay()
+        const weekMap = {"1": '周一', "2": '周二', "3": '周三', "4": '周四', "5": '周五', "6": '周六', "7": '周日'}
+        const tmpWeekzh = weekMap[tmpWeek]
+        this.weekjob = this.getJob('weekjob')
+        const isShowStateList = this.getShowStateUuids()
+        for (j = 0, len=this.weekjob.length; j < len; j++) {
+          const tmpuuid = this.weekjob[j].uuid
+          const tmpjobweek = this.weekjob[j].time
+          if(! isShowStateList.includes(tmpuuid) && tmpjobweek === tmpWeekzh ) {
+            this.commonjob = this.getJob('commonjob')
+            this.commonjob.push(this.weekjob[j])
+            this.setJob('commonjob', this.commonjob)
+          }
+        }
+
+      },
+      checkMonthJob() {
+        const tmpDay = new Date().getDate() + '号'
+        this.monthjob = this.getJob('monthjob')
+        const isShowStateList = this.getShowStateUuids()
+        for (j = 0, len=this.monthjob.length; j < len; j++) {
+          const tmpuuid = this.monthjob[j].uuid
+          const tmpjobday = this.monthjob[j].time
+          if(! isShowStateList.includes(tmpuuid) && tmpDay === tmpjobday ) {
+            this.commonjob = this.getJob('commonjob')
+            this.commonjob.push(this.monthjob[j])
+            this.setJob('commonjob', this.commonjob)
+          }
+        }
+      },
+      // 展示树数据填充
+      showInTree() {
+        this.checkDayJob()
+        this.checkWeekJob()
+        this.checkMonthJob()
+
+        this.treeJobData = []
+        const tmpMonth = this.dtSelecter.slice(0, 7)
+        const tmpDay = this.dtSelecter.slice(0, 10)
+
+        this.commonjob = this.getJob('commonjob')
+        this.historyjob = this.getJob(tmpMonth)
+        const nodejjzy = {"id": "1000", "label": '紧急重要', disabled: true}
+        const nodejjbzy = {"id": "2000", "label": '紧急不重要', disabled: true}
+        const nodezybjj = {"id": "3000", "label": '重要不紧急', disabled: true}
+        const nodebjjbzy = {"id": "4000", "label": '不紧急不重要', disabled: true}
+        const nodejrywc = {"id": "9000", "label": '今日已完成', disabled: true}
+
+        const node1childen = []
+        const node2childen = []
+        const node3childen = []
+        const node4childen = []
+        const node9childen = []
+
+        for (j = 0, len=this.commonjob.length; j < len; j++) {
+          const jobattr = this.commonjob[j].jobattr
+          const time =  this.commonjob[j].time
+          const job = this.commonjob[j].job
+          const uuid = this.commonjob[j].uuid
+          const tmpChilden = {"id": uuid, "label": time + '--' + job}
+          if(jobattr === 1) {
+            node1childen.push(tmpChilden)
+          } else if(jobattr === 2) {
+            node2childen.push(tmpChilden)
+          } else if (jobattr === 3) {
+            node3childen.push(tmpChilden)
+          } else {
+            node4childen.push(tmpChilden)
+          }
+        }
+
+        for (j = 0, len=this.historyjob.length; j < len; j++) {
+          const donetime = this.historyjob[j].donetime
+          const time =  this.historyjob[j].time
+          const job = this.historyjob[j].job
+          const uuid = this.historyjob[j].uuid
+          const tmpChilden = {"id": uuid, "label": time + '--' + job}
+          if(donetime.slice(0, 10) === tmpDay) {
+            node9childen.push(tmpChilden)
+          }
+        }
+
+
+        nodejjzy['children'] = node1childen
+        nodejjbzy['children'] = node2childen
+        nodezybjj['children'] = node3childen
+        nodebjjbzy['children'] = node4childen
+        nodejrywc['children'] = node9childen
+
+        this.treeJobData.push(nodejjzy)
+        this.treeJobData.push(nodejjbzy)
+        this.treeJobData.push(nodezybjj)
+        this.treeJobData.push(nodebjjbzy)
+        this.treeJobData.push(nodejrywc)
+
+      },
+      // 读取本地存储
+      getJob(jobname) {
+        const tmpJob = localStorage.getItem(jobname)
+        if(typeof tmpJob === "undefined" || tmpJob === null) {
+          return []
+        } else {
+          return JSON.parse(tmpJob)
+        }
+      },
+      // 写入本地存储
+      setJob(jobname, info) {
+        localStorage.setItem(jobname, JSON.stringify(info))
+      },
+      // 生成uuid
+      getUuid() {
+        var len = 32; //32长度
+        var radix = 16; //16进制
+        var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+        var uuid = [], i;
+        radix = radix || chars.length;
+        if(len) {
+          for(i = 0; i < len; i++)uuid[i] = chars[0 | Math.random() * radix];
+        } else {
+          var r;
+          uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+          uuid[14] = '4';
+          for(i = 0; i < 36; i++) {
+            if(!uuid[i]) {
+              r = 0 | Math.random() * 16;
+              uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+            }
+          }
+        }
+        return uuid.join('');
+      },
+      // 添加前检查
+      addCheck() {
+        if(this.dtSelecter === ''){
+          this.$message({message: '请选择时间！', type: 'error'})
+          return false
+        }
+        if(this.textJobInfo === ''){
+          this.$message({message: '请输入待办内容！', type: 'error'})
+          return false
+        }
+        if(this.textJobInfo.length > 64){
+          this.$message({message: '待办内容超长！', type: 'error'})
+          return false
+        }
+
+        return true
+      },
+      // 新增按钮
+      buttonAdd() {
+        if(this.addCheck()) {
+          uuid = this.getUuid()
+          const jobInfo = {
+            "uuid": uuid,
+            "time": this.dtSelecter,
+            "tag": '单次任务',
+            "jobattr": parseInt(this.radioJobTag),
+            "job": this.textJobInfo,
+            "doneflag": false,
+            "donetime": ''
+          }
+
+          this.commonjob = this.getJob('commonjob')
+          this.commonjob.push(jobInfo)
+          this.setJob('commonjob', this.commonjob)
+
+          this.textJobInfo = ''
+          this.showInTree()
+
+        }
+      },
+      // 处理完成的任务
+      // 在待办中删除
+      // 添加到历史记录中
+      handerDone(jobuuid) {
+        this.commonjob = this.getJob('commonjob')
+        this.handerDate(new Date())
+        const tmpMonth = this.dtSelecter.slice(0,7)
+        let doneJob = null
+
+        for (j = 0, len=this.commonjob.length; j < len; j++) {
+          if(this.commonjob[j].uuid === this.treeJobCheckedId) {
+            doneJob = this.commonjob[j]
+            this.commonjob.splice(j,1)
+            break
+          }
+        }
+        if(doneJob !== null) {
+          doneJob["doneflag"] = true
+          doneJob["donetime"] = this.dtSelecter
+          this.setJob('commonjob', this.commonjob)
+          this.historyjob = this.getJob(tmpMonth)
+          this.historyjob.push(doneJob)
+          this.setJob(tmpMonth, this.historyjob)
+        } else {
+          this.$message({message: '请选择正确的任务', type: 'error'})
+        }
+      },
+      // 完成按钮
+      buttonDone() {
+        if(this.treeJobCheckedId === '') {
+          this.$message({message: '请选择具体任务', type: 'error'})
+        } else {
+          this.handerDone()
+          this.showInTree()
+        }
+
+      },
+      // 树节点选择
+      treeCheckedChanged(val) {
+        if(val.id.length > 4 && ! val.doneflag ) {
+          this.treeJobCheckedId = val.id
+        } else { this.treeJobCheckedId = '' }
+      },
+      // 生成时间选择数据
+      handlerSelectOptions(val) {
+        let optionsData = []
+        if(val === 'day' ) {
+          for (j = 1; j < 25; j++) { optionsData.push({"value": j + ':00', "label": j + ':00'}) }
+        } else if(val === 'week' ) {
+          optionsData = [
+            {"value": '周一', "label": '周一'},
+            {"value": '周二', "label": '周二'},
+            {"value": '周三', "label": '周三'},
+            {"value": '周四', "label": '周四'},
+            {"value": '周五', "label": '周五'},
+            {"value": '周六', "label": '周六'},
+            {"value": '周日', "label": '周日'},
+          ]
+        } else {
+          for (j = 1; j < 32; j++) { optionsData.push({"value": j + '号', "label": j + '号'}) }
+        }
+        return optionsData
+      },
+      // 日按钮
+      buttonDay() {
+        this.zqFlag = 'day'
+        this.dialogTitle = '新增每日任务'
+        this.dialogTimeSelectData = this.handlerSelectOptions(this.zqFlag)
+        this.dialogFormVisible = true
+        this.showJobList()
+      },
+      // 周按钮
+      buttonWeek() {
+        this.zqFlag = 'week'
+        this.dialogTitle = '新增每周任务'
+        this.dialogTimeSelectData = this.handlerSelectOptions(this.zqFlag)
+        this.dialogFormVisible = true
+        this.showJobList()
+      },
+      // 月按钮
+      buttonMonth() {
+        this.zqFlag = 'month'
+        this.dialogTitle = '新增每月任务'
+        this.dialogTimeSelectData = this.handlerSelectOptions(this.zqFlag)
+        this.dialogFormVisible = true
+        this.showJobList()
+      },
+      // 周期任务时间选择
+      zqTimeChanged(val) {
+        this.dialogTimeSelectValue = val
+      },
+      // 周期任务新增检查
+      zqAddCheck() {
+        if(this.dialogTimeSelectValue === ''){
+          this.$message({message: '请选择时间！', type: 'error'})
+          return false
+        }
+        if(this.zqtextJobInfo === ''){
+          this.$message({message: '请输入待办内容！', type: 'error'})
+          return false
+        }
+        if(this.zqtextJobInfo.length > 64){
+          this.$message({message: '待办内容超长！', type: 'error'})
+          return false
+        }
+        return true
+      },
+      // 周期任务新增按钮
+      buttonZQAdd() {
+        if(this.zqAddCheck()) {
+          uuid = this.getUuid()
+          const jobInfo = {
+            "uuid": uuid,
+            "time": this.dialogTimeSelectValue,
+            "jobattr": 1,
+            "job": this.zqtextJobInfo,
+            "doneflag": false,
+            "donetime": ''
+            }
+
+          if(this.zqFlag === 'day') {
+            jobInfo['tag'] = '每日任务'
+            this.dayjob = this.getJob('dayjob')
+            this.dayjob.push(jobInfo)
+            this.setJob('dayjob', this.dayjob)
+          }
+
+          if(this.zqFlag === 'week') {
+            jobInfo['tag'] = '每周任务'
+            this.weekjob = this.getJob('weekjob')
+            this.weekjob.push(jobInfo)
+            this.setJob('weekjob', this.weekjob)
+          }
+          if(this.zqFlag === 'month') {
+            jobInfo['tag'] = '每月任务'
+            this.monthjob = this.getJob('monthjob')
+            this.monthjob.push(jobInfo)
+            this.setJob('monthjob', this.monthjob)
+          }
+
+          this.zqtextJobInfo = ''
+          this.showInTree()
+          this.showJobList()
+        }
+      },
+      // 周期任务删除按钮
+      buttonZQDelete() {
+        for(j = 0, len=this.tableJobData.length; j < len; j++) {
+          if(this.tableJobData[j]['uuid'] === this.tableJobClicked) {
+            this.tableJobData.splice(j, 1)
+            break
+          }
+        }
+        const tmpJobName = this.zqFlag + 'job'
+        this.setJob(tmpJobName, this.tableJobData)
+        this.showJobList()
+      },
+      // 周期任务列表显示
+      showJobList() {
+        const tmpJobName = this.zqFlag + 'job'
+        this.tableJobData = this.getJob(tmpJobName)
+      },
+      // 周期任务列表选择
+      jobTableClick(row) {
+        this.tableJobClicked = row.uuid
+      }
+    },
+    computed: {//计算属性
+    }
+  })
+</script>
+</body>
+  <!-- 样式设置 -->
+<style>
+  .elform {
+    margin: 10px;
+    text-align: left;
+  }
+
+  .el-header {
+    background-color: #B3C0D1;
+    color: #333;
+    /* text-align: center; */
+    line-height: 100px;
+  }
+
+  .el-footer {
+    background-color: #B3C0D1;
+    color: #333;
+    text-align: center;
+    line-height: 60px;
+  }
+
+  .el-aside {
+    background-color: #D3DCE6;
+    color: #333;
+    /* text-align: center; */
+    line-height: 200px;
+  }
+
+  .el-main {
+    background-color: #E9EEF3;
+    color: #333;
+    text-align: center;
+    line-height: 160px;
+  }
+
+  html,body,#app,.el-container {
+    margin-bottom: 10px;
+    height: 100%;
+  }
+
+  .el-container:nth-child(5) .el-aside,
+  .el-container:nth-child(6) .el-aside {
+    line-height: 260px;
+  }
+
+  .el-container:nth-child(7) .el-aside {
+    line-height: 320px;
+  }
+
+</style>
+</html>
