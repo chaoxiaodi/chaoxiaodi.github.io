@@ -207,10 +207,14 @@
           const tmpuuid = this.commonjob[j].uuid
           isShowStateList.push(tmpuuid)
         }
+        const tmpday = this.dtSelecter.slice(0, 10)
 
         for (j = 0, len=this.historyjob.length; j < len; j++) {
           const tmpuuid = this.historyjob[j].uuid
-          isShowStateList.push(tmpuuid)
+          if(this.historyjob[j].donetime.slice(0, 10) === tmpday ) {
+            continue
+          } else {isShowStateList.push(tmpuuid)}
+
         }
         return isShowStateList
       },
