@@ -208,11 +208,12 @@
           isShowStateList.push(tmpuuid)
         }
         const tmpday = this.dtSelecter.slice(0, 10)
-
+        console.log(tmpday)
         for (j = 0, len=this.historyjob.length; j < len; j++) {
           const tmpuuid = this.historyjob[j].uuid
           if(this.historyjob[j].donetime.slice(0, 10) === tmpday ) {
             isShowStateList.push(tmpuuid)
+            console.log(tmpuuid)
           }
 
         }
