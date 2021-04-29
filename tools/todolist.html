@@ -212,8 +212,8 @@
         for (j = 0, len=this.historyjob.length; j < len; j++) {
           const tmpuuid = this.historyjob[j].uuid
           if(this.historyjob[j].donetime.slice(0, 10) === tmpday ) {
-            continue
-          } else {isShowStateList.push(tmpuuid)}
+            isShowStateList.push(tmpuuid)
+          }
 
         }
         return isShowStateList
