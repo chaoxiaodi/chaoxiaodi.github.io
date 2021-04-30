@@ -136,9 +136,6 @@ python的可视化方案有很多，我使用的是 pyqt 之前也用过tk
 
 Q：594934249
 
-
-
-
 ---我是超小弟·一名不误专业的秃头运维---
 
 博客：[blog.chaoxiaodi.tech](https://blog.chaoxiaodi.tech)
@@ -147,11 +144,5 @@ github：[github:chaoxiaodi](https://github.com/chaoxiaodi)
 
 微信公众号：老骥不伏枥只是近黄昏
 
-
-
-
-
-
-
-
+![](/img/wxgzh.jpg)
 

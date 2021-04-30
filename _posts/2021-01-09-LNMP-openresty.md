@@ -190,7 +190,7 @@ openresy 官网的对于安装也提供了对应的文档，对一些常见的li
 
 如果有任何问题或建议欢迎提出、讨论~
 
-
+Q：594934249
 
 ---我是超小弟·一名不误专业的秃头运维---
 
@@ -199,4 +199,6 @@ openresy 官网的对于安装也提供了对应的文档，对一些常见的li
 github：[github:chaoxiaodi](https://github.com/chaoxiaodi)
 
 微信公众号：老骥不伏枥只是近黄昏
+
+![](/img/wxgzh.jpg)
 
