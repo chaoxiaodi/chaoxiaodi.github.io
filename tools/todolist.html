@@ -171,7 +171,6 @@
     },
 
     created() {// 页面创建时方法
-      this.handerDate(new Date())
       this.showInTree()
     },
 
@@ -529,7 +528,6 @@
             this.dayjob.push(jobInfo)
             this.setJob('dayjob', this.dayjob)
           }
-
           if(this.zqFlag === 'week') {
             jobInfo['tag'] = '每周任务'
             this.weekjob = this.getJob('weekjob')
