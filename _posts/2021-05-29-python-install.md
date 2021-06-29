@@ -36,7 +36,7 @@ https://www.python.org/downloads/release
 
 wget https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tar.xz
 
-####解压&编译&安装
+#### 解压&编译&安装
 
     解压：
     tar -xvJf Python-3.9.5.tar.xz
