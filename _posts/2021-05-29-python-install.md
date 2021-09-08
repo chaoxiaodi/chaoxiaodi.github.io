@@ -37,6 +37,10 @@ https://www.python.org/downloads/release
 
 wget https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tar.xz
 
+#### 安装依赖
+
+    yum -y install git gcc make patch zlib-devel gdbm-devel openssl-devel sqlite-devel bzip2-devel readline-devel
+
 #### 解压&编译&安装
 
     解压：
