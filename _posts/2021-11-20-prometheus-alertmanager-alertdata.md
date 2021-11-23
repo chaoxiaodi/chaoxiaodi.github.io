@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "prometheus alertmanager configuration"
-subtitle: '记录学习prometheus alertmanager配置'
+title: "prometheus alertmanager 告警/恢复 信息体"
+subtitle: '记录学习prometheus alertmanager'
 author: "chaoxiaodi"
 header-style: text
 tags:
@@ -145,18 +145,18 @@ tags:
           "alertname": "MySQL is down",
           "environment": "sandbox",
           "exporter_name": "mysql-3306",
-          "instance": "10.13.148.65",
-          "instance_name": "payment-sandbox-new",
-          "job": "mysql-3306_exporter_targets",
+          "instance": "xxxxx",
+          "instance_name": "xxxxx",
+          "job": "xxxxx",
           "metrics_path": "/scrape",
-          "project": "payment",
-          "release": "global",
+          "project": "xxxx",
+          "release": "xxxx",
           "service": "onebox",
           "severity": "critical"
         },
         "annotations": {
-          "description": "MySQL instance is down on 10.13.148.65\n  VALUE = 0\n",
-          "summary": "MySQL down (instance 10.13.148.65)"
+          "description": "MySQL instance is down on xxxxx\n  VALUE = 0\n",
+          "summary": "MySQL down (instance xxxxx)"
         },
         "startsAt": "2021-11-22T05:13:19.764Z",
         "endsAt": "2021-11-22T06:45:19.764Z",
