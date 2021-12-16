@@ -37,11 +37,11 @@
             </el-date-picker>
           </el-form-item>
         <el-form-item>
-          <el-radio-group v-model="radioJobTag">
-            <el-radio label="1" border>紧急重要</el-radio>
-            <el-radio label="2" border>紧急不重要</el-radio>
-            <el-radio label="3" border>重要不紧急</el-radio>
-            <el-radio label="4" border>不紧急不重要</el-radio>
+          <el-radio-group  calss='elradio' v-model="radioJobTag">
+            <el-radio calss='elradio' label="1" border>紧急重要</el-radio>
+            <el-radio calss='elradio' label="2" border>紧急不重要</el-radio>
+            <el-radio calss='elradio' label="3" border>重要不紧急</el-radio>
+            <el-radio calss='elradio' label="4" border>不紧急不重要</el-radio>
           </el-radio-group>
         </el-form-item>
 
@@ -575,6 +575,10 @@
 </body>
   <!-- 样式设置 -->
 <style>
+  .el-radio.is-bordered+.el-radio.is-bordered {
+    margin-left: 0px;
+  }
+
   .elform {
     margin: 10px;
     text-align: left;
