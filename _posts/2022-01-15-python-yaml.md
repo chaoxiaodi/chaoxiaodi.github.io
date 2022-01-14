@@ -155,6 +155,33 @@ tags:
 
 ### 后记
 
+    # 完整代码
+    import ruamel.yaml
+
+    append = {
+        "a": 'A',
+        "b": 'B',
+        "c": ['c', 'cc', 'ccc']
+    }
+
+    def main():
+        with open('test-template.yml', 'r', encoding='utf-8') as f:
+            f_read = f.read()
+            print(f_read)
+        yaml_read = ruamel.yaml.safe_load(f_read)
+        print(yaml_read)
+        yaml_read['append_1'] = append
+        yaml_read['append_2'] = append
+        yaml_read['append_3'] = append
+        print(yaml_read)
+        yaml = ruamel.yaml.YAML()
+        with open('output.yml', 'w', encoding='utf-8') as fo:
+            yaml.dump(yaml_read, fo)
+
+
+    if __name__ == "__main__":
+        main()
+
 如果有生成配置文件类
 
 或者开发系统或脚本时
