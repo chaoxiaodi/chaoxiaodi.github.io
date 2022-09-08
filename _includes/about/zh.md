@@ -21,10 +21,11 @@ Q：594934249
 #### skill & language
  `shell` `python` `javascript`<br>
  `MySQL` `MariaDB` `Redis`<br>
- `VUE` `Django` `DevOps` `SRE`<br>
+ `VUE` `Django` `Flask` `DevOps` `SRE`<br>
  `Git` `SVN`<br>
  `Centos` `Debian` `windows`<br>
- `CI/CD` `Ansible` `Jenkins` `Zabbix` `ELK`<br>
+ `CI/CD` `Ansible` `Jenkins`<br>
+ `Prometheus` `Zabbix` `ELK`<br>
  `OpenStack` `Docker` `K8S` `vSphere` `Hyper-v`<br>
  `Network` `H3C` `Cisco`<br>
  `aliyun` `qcloud` `AWS`<br>
