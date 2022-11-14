@@ -83,8 +83,8 @@ page-mathjax: false
 # Friends
 friends: [
     {
-         title: "hux",
-         href: "https://huangxuan.me"
+      title: "hux",
+      href: "https://huangxuan.me"
     },
     {
       title: "canghai",
