@@ -180,7 +180,7 @@ asyncio.to_thread()
         # 使用to_thread 来给函数传递多个参数
         response  = asyncio.to_thread(requests.get, url=url, timeout=10, params=params)
         # 或者
-        kwargs = {'url': url, 'timeout': 3, 'param's: params}
+        kwargs = {'url': url, 'timeout': 3, 'params': params}
         response  = asyncio.to_thread(requests.get, **kwargs)
         print('下载完成')
         # 图片保存到本地文件
@@ -267,19 +267,19 @@ asyncio.to_thread()
 再看一下python3.9之后新增的 to_thread()
 
     async def to_thread(func, /, *args, **kwargs):
-    """Asynchronously run function *func* in a separate thread.
+        """Asynchronously run function *func* in a separate thread.
 
-    Any *args and **kwargs supplied for this function are directly passed
-    to *func*. Also, the current :class:`contextvars.Context` is propogated,
-    allowing context variables from the main thread to be accessed in the
-    separate thread.
+        Any *args and **kwargs supplied for this function are directly passed
+        to *func*. Also, the current :class:`contextvars.Context` is propogated,
+        allowing context variables from the main thread to be accessed in the
+        separate thread.
 
-    Return a coroutine that can be awaited to get the eventual result of *func*.
-    """
-    loop = events.get_running_loop()
-    ctx = contextvars.copy_context()
-    func_call = functools.partial(ctx.run, func, *args, **kwargs)
-    return await loop.run_in_executor(None, func_call)
+        Return a coroutine that can be awaited to get the eventual result of *func*.
+        """
+        loop = events.get_running_loop()
+        ctx = contextvars.copy_context()
+        func_call = functools.partial(ctx.run, func, *args, **kwargs)
+        return await loop.run_in_executor(None, func_call)
 
 对应上面使用 run_in_executor 传递多个参数报错查找资料时提到的解决办法
 
