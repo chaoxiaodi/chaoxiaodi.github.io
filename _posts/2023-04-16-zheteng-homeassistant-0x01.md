@@ -67,6 +67,7 @@ modbus 采用CRC校验
 0x01 0x03 0x00 0x05 0x00 0x02 0x0c 0x14
 
 地址 功能码 寄存器起始高字节 寄存器起始低字节 寄存器数量高字节 寄存器数量低字节 CRC校验低字节 CRC校验高字节
+
 上面报文代表
 
 硬件的地址为1 16进制表示为0x01
@@ -79,7 +80,7 @@ modbus 采用CRC校验
 
 0x0c 0x14 这个一般调试软件会自动追加校验
 
-可以查看[modbus协议手册](/attachment/about-modbus-rtu.pdf)
+详细了解modbus可以查看[modbus协议手册](/attachment/about-modbus-rtu.pdf)
 
 ### 测试过程
 
@@ -93,7 +94,7 @@ rs485一般有AB两根线，可以买上文提到的usb转485接头(大概10元�
 
 软件的话可以下载sscom
 
-[sscom5.13](http://www.daxia.com/)
+下载sscom[sscom5.13](http://www.daxia.com/)
 
 还有就是一般生产硬件的厂家会提供可视化的调试软件
 
@@ -162,6 +163,7 @@ rs485一般有AB两根线，可以买上文提到的usb转485接头(大概10元�
 比如我读取的是电压，返回的数据是
 
 4363 B333
+
 4364 xxxx
 
 前面一段基本是稳定的不变的
@@ -184,6 +186,8 @@ rs485一般有AB两根线，可以买上文提到的usb转485接头(大概10元�
 再次回到homeassistant去看对应的配置
 
 然后就发现了上面协议支持的问题
+
+[DDSU666 说明书](https://github.com/liwei19920307/ESP485/tree/main/doc/DDSU666.pdf)
 
 #### tcp转rs485模块
 
@@ -219,8 +223,10 @@ rs485一般有AB两根线，可以买上文提到的usb转485接头(大概10元�
 
 #### home-assistant modbus接入
 
+modbus相关的配置可以查看文档
 [home-assistant modbus 集成](https://www.home-assistant.io/integrations/modbus/)
 
+配置正确的device-class 可以在页面上得到一个预设的icon
 [传感器支持的device-class](https://www.home-assistant.io/integrations/sensor/#device-class)
 
 home-assistant 官网提供了不少的配置案例
