@@ -8,7 +8,7 @@ tags:
   - home-assistant
   - homeassistant
   - 智能家居
-  - 智障家具
+  - 智障家居
   - 折腾记录
 ---
 
