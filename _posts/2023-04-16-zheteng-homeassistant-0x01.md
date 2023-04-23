@@ -440,13 +440,13 @@ home-assistant真的强
 ![](/img/zheteng-0x01-485relay.png)
 ![](/img/zheteng-0x01-ddsu666.png)
 
+### 参考
+
 [home-assistant 官网](https://www.home-assistant.io/)
 
 [esphome 官网](https://esphome.io/)
 
 [论坛 官网](https://bbs.hassbian.com/)
-
-### 参考
 
 Q：594934249
 
