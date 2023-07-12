@@ -776,29 +776,29 @@ state_attr(实体id, 属性)
     # 添加卡片选择markdown
     type: markdown
     content: |-
-      {% set ids = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] %}
-      {% set forecase15 = [
+      {\\% set ids = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] %}
+      {\\% set forecase15 = [
       'date','uv_level','aqi','aqi_level','aqi_level_name','sunrise','sunset',
       'rainIntensity','high','low','humidity'
       ] %}
       |日期|紫外线强度|空气质量指数|空气质量级别|空气质量描述|日出|日落|降雨强度|最高温度|最低温度|湿度|
       |:----|:----|:----|:----|:----|:----|:----|:----|:----|:----|:----|
-      {% for id in ids %}
-        {% set sid = 'sensor.zhwnlapi_forecast15_' ~ id %}
-        {%- for attr in forecase15 -%}
+      {\\% for id in ids %}
+        {\\% set sid = 'sensor.zhwnlapi_forecast15_' ~ id %}
+        {\\%- for attr in forecase15 -%}
       |{{ state_attr(sid, attr) }}
-        {%- endfor -%}
+        {\\%- endfor -%}
       |
-      {% endfor %}
+      {\\% endfor %}
     title: 15日天气预报
 
 
     type: markdown
     content: >-
-      {% set ids = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+      {\\% set ids = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
       %}
 
-      {% set hourfc = [
+      {\\% set hourfc = [
 
       'time','wthr','aqi','aqi_level','aqi_level_name','type_desc','wd', 'wp',
       'shidu'
@@ -809,13 +809,13 @@ state_attr(实体id, 属性)
 
       |---|---|---|---|---|---|---|---|---|
 
-      {%- for id in ids %}
-        {% set sid = 'sensor.zhwnlapi_hourfc_' ~ id %}
+      {\\%- for id in ids %}
+        {\\% set sid = 'sensor.zhwnlapi_hourfc_' ~ id %}
       |
-        {%- for attr in hourfc -%}
+        {\\%- for attr in hourfc -%}
       {{ state_attr(sid, attr) }}|
-        {%- endfor -%}
-      {% endfor%}
+        {\\%- endfor -%}
+      {\\% endfor%}
     title: 24小时天气预报
 
 通过实体的card推荐接入一些独立的信息
