@@ -45,30 +45,30 @@ oci的认证没有aws的iam一样提供那么多的功能
 
     class OciApi:
 
-        def __init__(self, config: dict, profile_name: str = 'DEFAULT'):
+        def __init__(self, config: dict = None, profile_name: str = 'DEFAULT'):
             auth_flag = False
 
             try:
                 if config:
                     oci.config.validate_config(config)
-                auth_flag = True
-                self.config = config
-                self.client_kwargs = {}
-                
+                    self.tenancy_id = config['tenancy']
+                    auth_flag = True
+                    self.config = config
+                    self.client_kwargs = {}
             except Exception as e:
-                print(e)
+                self.log.warning(e)
 
             try:
                 if not auth_flag:
                     default_config = oci.config.from_file(profile_name=profile_name)
                     oci.config.validate_config(default_config)
                     self.config = default_config
+                    self.tenancy_id = default_config['tenancy']
 
-                auth_flag = True
-                self.client_kwargs = {}
-                
+                    auth_flag = True
+                    self.client_kwargs = {}
             except Exception as e:
-                print(e)
+                self.log.warning(e)
 
             try:
                 if not auth_flag:
@@ -78,12 +78,13 @@ oci的认证没有aws的iam一样提供那么多的功能
                     self.client_kwargs = {
                         'signer': signer
                     }
+                    self.tenancy_id = signer.tenancy_id
 
-                auth_flag = True
-                self.config = {}
+                    auth_flag = True
+                    self.config = {}
 
             except Exception as e:
-                print(e)
+                self.log.warning(e)
 
             if not auth_flag:
                 raise Exception('auth failed')
@@ -95,8 +96,6 @@ oci的认证没有aws的iam一样提供那么多的功能
 
     if __name__ == '__main__':
         pass
-
-
 
 
 
