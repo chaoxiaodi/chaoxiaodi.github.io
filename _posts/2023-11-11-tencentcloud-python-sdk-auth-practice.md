@@ -2,7 +2,7 @@
  * @Author: guangcai.liu
  * @Date: 2023-11-16 09:59:17
  * @LastEditors: guangcai.liu
- * @LastEditTime: 2023-11-16 10:18:43
+ * @LastEditTime: 2023-12-14 18:21:51
  * @FilePath: /chaoxiaodi.github.io/_posts/2023-11-11-tencentcloud-python-sdk-auth-practice.md
 -->
 ---
@@ -97,9 +97,9 @@ tags:
     # 前提是必须进行了授权 a账号有切换到b账号的权限 同时b账号允许a账号进行切换
     # 但是腾讯云的角色切换这部分功能还并不是很完善
     q = QcloudApi(key=key, secret=sec)
-    q = QcloudApi(account='100034157372')
-    q = QcloudApi(account='100034157372', role='test')
-    q = QcloudApi(account='100034157372', key=key, secret=sec, role='test')
+    q = QcloudApi(account='xxxxxx')
+    q = QcloudApi(account='xxxxxx', role='test')
+    q = QcloudApi(account='xxxxxx', key=key, secret=sec, role='test')
 
 # 参考
 [腾讯云凭证管理文档](https://cloud.tencent.com/document/sdk/python?from=20423&from_column=20423#6d1c6674-37d1-431c-908b-2e27bec41331)
