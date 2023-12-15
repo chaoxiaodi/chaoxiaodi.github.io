@@ -1,10 +1,3 @@
-<!--
- * @Author: guangcai.liu
- * @Date: 2023-11-16 09:59:17
- * @LastEditors: guangcai.liu
- * @LastEditTime: 2023-12-14 18:20:44
- * @FilePath: /chaoxiaodi.github.io/_posts/2023-12-09-alibabacloud-python-sdk-auth-practice.md
--->
 ---
 layout: post
 title: "alibabacloud python sdk auth practice"
