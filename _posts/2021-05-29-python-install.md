@@ -29,24 +29,26 @@ python安装包所有版本下载地址
 
 https://www.python.org/downloads/release
 
-本次以下载3.9.6版本为例
+本次以下载3.9.19版本为例
 
-下载地址：https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tar.xz
+下载地址：https://www.python.org/ftp/python/3.9.19/Python-3.9.19.tar.xz
 
 在linux使用wget进行下载
 
-wget https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tar.xz
+wget https://www.python.org/ftp/python/3.9.19/Python-3.9.19.tar.xz
 
 #### 安装依赖
+
+    yum install -y yum-utils && yum-builddep -y python3
 
     yum -y install git gcc make patch zlib-devel gdbm-devel openssl-devel sqlite-devel bzip2-devel readline-devel libffi-devel
 
 #### 解压&编译&安装
 
     解压：
-    tar -xvJf Python-3.9.5.tar.xz
+    tar -xvJf Python-3.9.19.tar.xz
     进入目录：
-    cd Python-3.9.6
+    cd Python-3.9.19
     预编译
     ./configure prefix=/usr/local/python3
     编译安装 可以通过指定 cpu数量加快速度
