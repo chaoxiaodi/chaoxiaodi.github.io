@@ -1,4 +1,3 @@
-
 ---
 layout: post
 title: "game design Match For Builder"
@@ -10,7 +9,6 @@ tags:
   - 消除类游戏
   - 三消游戏
   - match game
-
 ---
 
 ## 前言
