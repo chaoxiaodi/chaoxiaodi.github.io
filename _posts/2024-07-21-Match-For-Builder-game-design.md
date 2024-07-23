@@ -1,13 +1,16 @@
 
 ---
 layout: post
-title: "post test"
-subtitle: 'first post test'
+title: "game design Match For Builder"
+subtitle: '一个缝合的消除类游戏想法记录'
 author: "chaoxiaodi"
 header-style: text
 tags:
-  - post
-  - test
+  - game
+  - 消除类游戏
+  - 三消游戏
+  - match game
+
 ---
 
 ## 前言
