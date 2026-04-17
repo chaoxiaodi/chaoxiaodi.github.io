@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>玄枢·八维迷阵</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: 'Microsoft YaHei', sans-serif;
+    color: #e0e0e0;
+    overflow: hidden;
+  }
+  h1 {
+    font-size: 26px;
+    margin-bottom: 6px;
+    color: #00d4ff;
+    text-shadow: 0 0 15px rgba(0,212,255,0.5);
+  }
+  #header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 4px;
+  }
+  #level-display {
+    font-size: 18px;
+    color: #ffc832;
+    font-weight: bold;
+  }
+  #timer-display {
+    font-size: 20px;
+    color: #00ff88;
+    font-family: 'Courier New', monospace;
+    min-width: 70px;
+    text-align: center;
+  }
+  #info {
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: #888;
+  }
+  #game-area {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  canvas {
+    border: 2px solid #00d4ff33;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0,212,255,0.15);
+    cursor: crosshair;
+    touch-action: none;
+  }
+  /* Right panel - height synced with canvas via JS var */
+  #records-panel {
+    width: 190px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #00d4ff33;
+    border-radius: 8px;
+    padding: 12px;
+    height: var(--canvas-h, 650px);
+    overflow: hidden;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+  }
+  #records-panel::-webkit-scrollbar { width: 4px; }
+  #records-panel::-webkit-scrollbar-thumb { background: #00d4ff44; border-radius: 2px; }
+  #records-panel h3 {
+    color: #00d4ff;
+    font-size: 15px;
+    margin-bottom: 10px;
+    text-align: center;
+    border-bottom: 1px solid #00d4ff33;
+    padding-bottom: 6px;
+    flex-shrink: 0;
+  }
+  #records-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  #records-list::-webkit-scrollbar { width: 4px; }
+  #records-list::-webkit-scrollbar-thumb { background: #00d4ff33; border-radius: 2px; }
+  #panel-footer { flex-shrink: 0; }
+  .record-group { margin-bottom: 6px; }
+  .record-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #ffc832;
+    font-weight: bold;
+    font-size: 13px;
+    padding: 4px 6px;
+    cursor: pointer;
+    border-radius: 4px;
+    user-select: none;
+  }
+  .record-group-header:hover { background: rgba(255,200,50,0.08); }
+  .record-group-header .arrow { font-size: 10px; color: #888; transition: transform 0.2s; }
+  .record-group-header .arrow.open { transform: rotate(90deg); }
+  .record-group-header .progress { font-size: 11px; color: #888; font-weight: normal; }
+  .record-group-items { overflow: hidden; }
+  .record-group-items.collapsed { display: none; }
+  .record-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 1px;
+    font-size: 12px;
+  }
+  .record-item.current {
+    background: rgba(0,212,255,0.15);
+    color: #00d4ff;
+    font-weight: bold;
+  }
+  .record-item .time { color: #00ff88; font-family: 'Courier New', monospace; }
+  .record-item .time.empty { color: #555; }
+  #total-time {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #00d4ff33;
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    color: #ffc832;
+  }
+  #total-time .time { color: #00ff88; font-family: 'Courier New', monospace; }
+  #reset-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 6px;
+    font-size: 12px;
+    background: rgba(255,80,80,0.15);
+    border: 1px solid rgba(255,80,80,0.3);
+    border-radius: 6px;
+    color: #ff6666;
+    cursor: pointer;
+  }
+  #reset-btn:hover { background: rgba(255,80,80,0.3); }
+  /* Win modal */
+  #win-msg {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10,15,30,0.95);
+    backdrop-filter: blur(10px);
+    border: 2px solid #00d4ff;
+    border-radius: 16px;
+    padding: 36px 50px;
+    text-align: center;
+    z-index: 10;
+  }
+  #win-msg h2 { font-size: 32px; color: #00ff88; margin-bottom: 8px; }
+  #win-msg .win-level { font-size: 18px; color: #ffc832; margin-bottom: 4px; }
+  #win-msg .win-time { font-size: 22px; color: #00ff88; font-family: 'Courier New', monospace; margin-bottom: 6px; }
+  #win-msg .win-best { font-size: 14px; color: #aaa; margin-bottom: 16px; }
+  #win-msg .btn-row { display: flex; gap: 12px; justify-content: center; }
+  #win-msg button {
+    padding: 10px 24px;
+    font-size: 15px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  #btn-retry { background: #4a90d9; color: #fff; }
+  #btn-retry:hover { background: #5aa0e9; }
+  #btn-next { background: #00d4ff; color: #1a1a2e; }
+  #btn-next:hover { background: #00ff88; }
+  /* Leaderboard button */
+  #lb-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 6px;
+    font-size: 12px;
+    background: rgba(0,212,255,0.12);
+    border: 1px solid #00d4ff44;
+    border-radius: 6px;
+    color: #00d4ff;
+    cursor: pointer;
+  }
+  #lb-btn:hover { background: rgba(0,212,255,0.25); }
+  /* Overlay backdrop */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 20;
+    justify-content: center;
+    align-items: center;
+  }
+  .overlay.show { display: flex; }
+  .overlay-box {
+    background: #0d1b2a;
+    border: 2px solid #00d4ff;
+    border-radius: 16px;
+    padding: 28px 36px;
+    max-width: 560px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .overlay-box::-webkit-scrollbar { width: 4px; }
+  .overlay-box::-webkit-scrollbar-thumb { background: #00d4ff44; border-radius: 2px; }
+  .overlay-box h2 {
+    color: #00d4ff;
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .overlay-close {
+    position: absolute;
+    top: 12px; right: 16px;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 22px;
+    cursor: pointer;
+  }
+  .overlay-close:hover { color: #fff; }
+  /* Name input modal */
+  #name-modal .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  #name-modal input {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 16px;
+    background: #16213e;
+    border: 1px solid #00d4ff44;
+    border-radius: 8px;
+    color: #e0e0e0;
+    outline: none;
+    font-family: inherit;
+  }
+  #name-modal input:focus { border-color: #00d4ff; }
+  #name-modal .submit-btn {
+    padding: 10px 20px;
+    font-size: 15px;
+    background: #00d4ff;
+    border: none;
+    border-radius: 8px;
+    color: #1a1a2e;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #name-modal .submit-btn:hover { background: #00ff88; }
+  #name-modal .skip-btn {
+    display: block;
+    margin: 0 auto;
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  #name-modal .skip-btn:hover { color: #aaa; }
+  /* Leaderboard table */
+  .lb-table { width: 100%; border-collapse: collapse; }
+  .lb-table th {
+    text-align: left;
+    color: #888;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-bottom: 1px solid #00d4ff22;
+  }
+  .lb-table td {
+    padding: 6px 8px;
+    font-size: 13px;
+    border-bottom: 1px solid #ffffff08;
+  }
+  .lb-table tr { cursor: pointer; border-radius: 4px; }
+  .lb-table tbody tr:hover { background: rgba(0,212,255,0.08); }
+  .lb-rank { color: #ffc832; font-weight: bold; width: 30px; }
+  .lb-name { color: #e0e0e0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-time { color: #00ff88; font-family: 'Courier New', monospace; text-align: right; }
+  .lb-date { color: #666; font-size: 11px; text-align: right; }
+  .lb-medal { font-size: 16px; }
+  .lb-empty { text-align: center; color: #555; padding: 30px; font-size: 14px; }
+  /* Detail view */
+  .lb-detail-back {
+    background: none;
+    border: none;
+    color: #00d4ff;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 12px;
+    padding: 0;
+  }
+  .lb-detail-back:hover { color: #00ff88; }
+  .lb-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .lb-detail-header h3 { color: #ffc832; font-size: 18px; }
+  .lb-detail-header .total { color: #00ff88; font-family: 'Courier New', monospace; font-size: 18px; }
+  .lb-detail-group { margin-bottom: 8px; }
+  .lb-detail-group-title { color: #ffc832; font-size: 12px; font-weight: bold; margin-bottom: 2px; }
+  .lb-detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 1px 6px;
+    font-size: 12px;
+  }
+  .lb-detail-item .time { color: #00ff88; font-family: 'Courier New', monospace; }
+  /* Background canvas */
+  #bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+  /* ========== Mobile ========== */
+  @media (max-width: 768px) {
+    body {
+      justify-content: flex-start;
+      overflow-y: auto;
+      padding: 8px 0 16px;
+    }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    #header { gap: 12px; margin-bottom: 2px; }
+    #level-display { font-size: 15px; }
+    #timer-display { font-size: 17px; }
+    #info { font-size: 12px; margin-bottom: 6px; text-align: center; padding: 0 12px; }
+    #game-area {
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    #records-panel {
+      width: calc(100vw - 16px);
+      max-width: var(--canvas-h, 360px);
+      height: auto;
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+    #win-msg {
+      padding: 24px 20px;
+      width: 90%;
+      max-width: 360px;
+    }
+    #win-msg h2 { font-size: 24px; }
+    #win-msg .win-time { font-size: 18px; }
+    #win-msg button { padding: 8px 18px; font-size: 14px; }
+    canvas#maze { border-radius: 6px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<h1>玄枢·八维迷阵</h1>
+<div id="header">
+  <div id="level-display">第 1-1 关</div>
+  <div id="timer-display">00:00</div>
+</div>
+<div id="info">方向键 ↑↓←→ 或鼠标拖拽控制移动 · 从中心走出迷宫</div>
+<div id="game-area">
+  <canvas id="maze"></canvas>
+  <div id="records-panel">
+    <h3>通关记录</h3>
+    <div id="records-list"></div>
+    <div id="panel-footer">
+      <div id="total-time">
+        <span>总用时</span>
+        <span class="time" id="total-time-val">--</span>
+      </div>
+      <button id="lb-btn" onclick="showLeaderboard()">排行榜</button>
+      <button id="reset-btn" onclick="resetProgress()">重置进度</button>
+    </div>
+  </div>
+</div>
+
+<!-- Name input modal (after full clear) -->
+<div class="overlay" id="name-modal">
+  <div class="overlay-box">
+    <h2>全部通关！</h2>
+    <p style="text-align:center;color:#aaa;margin-bottom:16px;" id="name-modal-time"></p>
+    <p style="text-align:center;color:#ccc;margin-bottom:12px;">输入你的名字，记录到排行榜</p>
+    <div class="input-row">
+      <input type="text" id="player-name-input" placeholder="你的名字" maxlength="20" onkeydown="if(event.key==='Enter')submitToLeaderboard()">
+      <button class="submit-btn" onclick="submitToLeaderboard()">提交</button>
+    </div>
+    <button class="skip-btn" onclick="closeNameModal()">跳过</button>
+  </div>
+</div>
+
+<!-- Leaderboard modal -->
+<div class="overlay" id="lb-modal">
+  <div class="overlay-box">
+    <button class="overlay-close" onclick="closeLeaderboard()">&times;</button>
+    <h2>排行榜</h2>
+    <div id="lb-content"></div>
+  </div>
+</div>
+
+<div id="win-msg">
+  <h2>通关！</h2>
+  <div class="win-level" id="win-level-text"></div>
+  <div class="win-time" id="win-time-text"></div>
+  <div class="win-best" id="win-best-text"></div>
+  <div class="btn-row">
+    <button id="btn-retry" onclick="retryLevel()">重玩本关</button>
+    <button id="btn-next">下一关</button>
+  </div>
+</div>
+
+<script>
+// ========== CONFIG ==========
+const MAX_MAJOR = 6;
+const MINOR_COUNTS = [4, 6, 10, 20, 50, 100]; // sub-levels per major
+const BASE_LAYERS = [4, 5, 6, 7, 8, 9];       // octagon layers per major
+const STORAGE_KEY = 'octagon-maze-records';
+const LB_STORAGE_KEY = 'octagon-maze-leaderboard';
+
+// Max total rings limited by canvas: ~250px available / 15px min corridor = 16
+const MAX_TOTAL_RINGS = 16;
+
+function getLevelConfig(major, minor) {
+  const baseLayers = BASE_LAYERS[major - 1];
+  const totalMinor = MINOR_COUNTS[major - 1];
+  const progress = (minor - 1) / Math.max(totalMinor - 1, 1); // 0.0 ~ 1.0
+
+  const baseGaps = baseLayers - 1;
+  const maxSubdiv = Math.floor(MAX_TOTAL_RINGS / baseGaps);
+
+  // Subdivision: ramps up in the second half of progress
+  let subdivision = 1;
+  if (maxSubdiv > 1) {
+    const subdivProgress = Math.max(0, (progress - 0.35) / 0.65);
+    subdivision = 1 + Math.floor(subdivProgress * (maxSubdiv - 1));
+    subdivision = Math.min(subdivision, maxSubdiv);
+  }
+
+  // Extra open rate: from 0.25 (easy) to 0 (hard)
+  const extraOpenRate = Math.max(0, 0.25 * (1 - progress * 1.1));
+
+  // Exit count: 3 early, 2 mid, 1 late
+  let exitCount;
+  if (progress < 0.25) exitCount = 3;
+  else if (progress < 0.6) exitCount = 2;
+  else exitCount = 1;
+
+  return { baseLayers, subdivision, extraOpenRate, exitCount };
+}
+
+// ========== STORAGE ==========
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { records: {}, currentLevel: [1, 1] };
+}
+function saveToDisk(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+}
+
+let saveData = loadSave();
+
+function saveRecord(major, minor, time) {
+  const key = major + '-' + minor;
+  const prev = saveData.records[key];
+  if (prev === undefined || time < prev) {
+    saveData.records[key] = Math.round(time * 100) / 100;
+  }
+  saveToDisk(saveData);
+}
+function saveCurrentLevel(major, minor) {
+  saveData.currentLevel = [major, minor];
+  saveToDisk(saveData);
+}
+function resetProgress() {
+  if (!confirm('确定要重置所有进度吗？')) return;
+  saveData = { records: {}, currentLevel: [1, 1] };
+  saveToDisk(saveData);
+  currentMajor = 1; currentMinor = 1;
+  startLevel(1, 1);
+}
+
+// ========== CANVAS ==========
+const canvas = document.getElementById('maze');
+const ctx = canvas.getContext('2d');
+
+function isMobile() { return window.innerWidth <= 768; }
+
+function calcSize() {
+  if (isMobile()) {
+    return Math.min(window.innerWidth - 16, window.innerHeight - 160, 600);
+  }
+  return Math.min(window.innerWidth - 250, window.innerHeight - 120, 800);
+}
+
+let SIZE = calcSize();
+canvas.width = SIZE;
+canvas.height = SIZE;
+document.documentElement.style.setProperty('--canvas-h', SIZE + 'px');
+let CX = SIZE / 2;
+let CY = SIZE / 2;
+
+// ========== GAME STATE ==========
+let currentMajor = saveData.currentLevel[0] || 1;
+let currentMinor = saveData.currentLevel[1] || 1;
+let LAYERS, RADII, NUM_GAPS, extraOpenRate, levelExitCount;
+let walls = [];
+let radialWalls = [];
+let player = { x: CX, y: CY };
+const PLAYER_R = 6;
+const MOVE_SPEED = 150;
+let lastFrameTime = 0;
+let mouseTarget = null;
+let isDragging = false;
+let won = false;
+let timerStart = 0, timerRunning = false, elapsedTime = 0;
+// Trail for spirit tail
+const trail = [];
+const TRAIL_MAX = 12;
+
+// ========== OCTAGON GEOMETRY ==========
+function getVertex(radius, index) {
+  const angle = -Math.PI / 2 - Math.PI / 8 + index * Math.PI / 4;
+  return { x: CX + radius * Math.cos(angle), y: CY + radius * Math.sin(angle) };
+}
+function getOctagonVertices(radius) {
+  const v = [];
+  for (let i = 0; i < 8; i++) v.push(getVertex(radius, i));
+  return v;
+}
+function sideMidpoint(radius, sideIndex) {
+  const v1 = getVertex(radius, sideIndex);
+  const v2 = getVertex(radius, (sideIndex + 1) % 8);
+  return { x: (v1.x + v2.x) / 2, y: (v1.y + v2.y) / 2 };
+}
+
+// ========== MAZE GENERATION ==========
+const CENTER = -1;
+function cellId(gap, side) {
+  if (gap === CENTER) return 0;
+  return 1 + gap * 8 + side;
+}
+
+let ufParent = [], ufRank = [];
+function ufInit(n) {
+  ufParent = new Array(n + 1); ufRank = new Array(n + 1);
+  for (let i = 0; i <= n; i++) { ufParent[i] = i; ufRank[i] = 0; }
+}
+function ufFind(x) {
+  while (ufParent[x] !== x) { ufParent[x] = ufParent[ufParent[x]]; x = ufParent[x]; }
+  return x;
+}
+function ufUnion(a, b) {
+  a = ufFind(a); b = ufFind(b);
+  if (a === b) return false;
+  if (ufRank[a] < ufRank[b]) [a, b] = [b, a];
+  ufParent[b] = a;
+  if (ufRank[a] === ufRank[b]) ufRank[a]++;
+  return true;
+}
+
+function initWalls() {
+  walls = [];
+  for (let l = 0; l < LAYERS; l++) {
+    walls[l] = [];
+    for (let s = 0; s < 8; s++) walls[l][s] = true;
+  }
+  radialWalls = [];
+  for (let g = 0; g < NUM_GAPS; g++) {
+    radialWalls[g] = [];
+    for (let v = 0; v < 8; v++) radialWalls[g][v] = true;
+  }
+}
+
+function generateMaze() {
+  initWalls();
+  const TOTAL_CELLS = 1 + NUM_GAPS * 8;
+  const OUTSIDE_ID = TOTAL_CELLS;
+  ufInit(TOTAL_CELLS);
+
+  let edges = [];
+  for (let s = 0; s < 8; s++)
+    edges.push({ type: 'oct', layer: 0, side: s, cellA: cellId(CENTER, 0), cellB: cellId(0, s) });
+  for (let l = 1; l < LAYERS - 1; l++)
+    for (let s = 0; s < 8; s++)
+      edges.push({ type: 'oct', layer: l, side: s, cellA: cellId(l - 1, s), cellB: cellId(l, s) });
+  for (let s = 0; s < 8; s++)
+    edges.push({ type: 'oct', layer: LAYERS - 1, side: s, cellA: cellId(NUM_GAPS - 1, s), cellB: OUTSIDE_ID });
+  for (let g = 0; g < NUM_GAPS; g++)
+    for (let v = 0; v < 8; v++)
+      edges.push({ type: 'rad', gap: g, vertex: v, cellA: cellId(g, (v - 1 + 8) % 8), cellB: cellId(g, v) });
+
+  // Shuffle (Kruskal's)
+  for (let i = edges.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [edges[i], edges[j]] = [edges[j], edges[i]];
+  }
+  for (const e of edges) {
+    if (ufUnion(e.cellA, e.cellB)) {
+      if (e.type === 'oct') walls[e.layer][e.side] = false;
+      else radialWalls[e.gap][e.vertex] = false;
+    }
+  }
+
+  // Control exit count on outermost wall
+  let exitSides = [];
+  for (let s = 0; s < 8; s++) if (!walls[LAYERS - 1][s]) exitSides.push(s);
+
+  if (exitSides.length === 0) {
+    // Force one exit
+    const s = Math.floor(Math.random() * 8);
+    walls[LAYERS - 1][s] = false;
+    exitSides.push(s);
+  }
+
+  // If too many exits, close some; if too few, open more
+  while (exitSides.length > levelExitCount) {
+    const idx = Math.floor(Math.random() * exitSides.length);
+    walls[LAYERS - 1][exitSides[idx]] = true;
+    exitSides.splice(idx, 1);
+  }
+  while (exitSides.length < levelExitCount) {
+    const closed = [];
+    for (let s = 0; s < 8; s++) if (walls[LAYERS - 1][s]) closed.push(s);
+    if (closed.length === 0) break;
+    const s = closed[Math.floor(Math.random() * closed.length)];
+    walls[LAYERS - 1][s] = false;
+    exitSides.push(s);
+  }
+
+  // Extra openings (shortcuts)
+  if (extraOpenRate > 0) {
+    const extra = edges.filter(e => {
+      if (e.type === 'oct') return walls[e.layer][e.side];
+      return radialWalls[e.gap][e.vertex];
+    });
+    const count = Math.floor(extra.length * extraOpenRate);
+    for (let i = 0; i < count && i < extra.length; i++) {
+      const e = extra[i];
+      if (e.type === 'oct') {
+        if (e.layer === LAYERS - 1) continue;
+        walls[e.layer][e.side] = false;
+      } else {
+        radialWalls[e.gap][e.vertex] = false;
+      }
+    }
+  }
+
+  // === Connectivity verification ===
+  // BFS from center to ensure all cells (including an exit) are reachable
+  const totalC = 1 + NUM_GAPS * 8;
+  const outsideC = totalC;
+  const adj = Array.from({ length: totalC + 1 }, () => []);
+  // Build adjacency from current wall state
+  for (let s = 0; s < 8; s++) {
+    if (!walls[0][s]) { adj[0].push(cellId(0, s)); adj[cellId(0, s)].push(0); }
+  }
+  for (let l = 1; l < LAYERS - 1; l++) {
+    for (let s = 0; s < 8; s++) {
+      if (!walls[l][s]) { adj[cellId(l-1, s)].push(cellId(l, s)); adj[cellId(l, s)].push(cellId(l-1, s)); }
+    }
+  }
+  for (let s = 0; s < 8; s++) {
+    if (!walls[LAYERS-1][s]) { adj[cellId(NUM_GAPS-1, s)].push(outsideC); adj[outsideC].push(cellId(NUM_GAPS-1, s)); }
+  }
+  for (let g = 0; g < NUM_GAPS; g++) {
+    for (let v = 0; v < 8; v++) {
+      if (!radialWalls[g][v]) {
+        const a = cellId(g, (v-1+8)%8), b = cellId(g, v);
+        adj[a].push(b); adj[b].push(a);
+      }
+    }
+  }
+  // BFS from center (cell 0)
+  const visited = new Uint8Array(totalC + 1);
+  const queue = [0];
+  visited[0] = 1;
+  let head = 0;
+  while (head < queue.length) {
+    const cur = queue[head++];
+    for (const nb of adj[cur]) {
+      if (!visited[nb]) { visited[nb] = 1; queue.push(nb); }
+    }
+  }
+  // Fix 1: center must connect to at least one gap-0 cell
+  if (queue.length <= 1) {
+    const s = Math.floor(Math.random() * 8);
+    walls[0][s] = false;
+  }
+  // Fix 2: if outside not reachable from center, force open a path layer by layer
+  if (!visited[outsideC]) {
+    for (let l = 0; l < LAYERS; l++) {
+      let hasOpen = false;
+      for (let s = 0; s < 8; s++) { if (!walls[l][s]) { hasOpen = true; break; } }
+      if (!hasOpen) {
+        walls[l][Math.floor(Math.random() * 8)] = false;
+      }
+    }
+    // Ensure at least one radial connection per gap
+    for (let g = 0; g < NUM_GAPS; g++) {
+      let hasOpen = false;
+      for (let v = 0; v < 8; v++) { if (!radialWalls[g][v]) { hasOpen = true; break; } }
+      if (!hasOpen) {
+        radialWalls[g][Math.floor(Math.random() * 8)] = false;
+      }
+    }
+  }
+}
+
+// ========== DRAWING ==========
+function drawMaze() {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  for (let l = LAYERS - 1; l >= 0; l--) {
+    const verts = getOctagonVertices(RADII[l]);
+    ctx.beginPath();
+    ctx.moveTo(verts[0].x, verts[0].y);
+    for (let i = 1; i < 8; i++) ctx.lineTo(verts[i].x, verts[i].y);
+    ctx.closePath();
+    ctx.fillStyle = l === 0 ? '#0d1b2a' : '#16213e';
+    ctx.fill();
+  }
+
+  ctx.lineCap = 'round';
+
+  // Octagon walls
+  for (let l = 0; l < LAYERS; l++) {
+    for (let s = 0; s < 8; s++) {
+      if (!walls[l][s]) continue;
+      const v1 = getVertex(RADII[l], s);
+      const v2 = getVertex(RADII[l], (s + 1) % 8);
+      ctx.beginPath();
+      ctx.moveTo(v1.x, v1.y);
+      ctx.lineTo(v2.x, v2.y);
+      ctx.strokeStyle = l === LAYERS - 1 ? '#00d4ff' : '#4a90d9';
+      ctx.lineWidth = l === LAYERS - 1 ? 2.5 : 2;
+      ctx.stroke();
+    }
+  }
+
+  // Radial walls
+  for (let g = 0; g < NUM_GAPS; g++) {
+    for (let v = 0; v < 8; v++) {
+      if (!radialWalls[g][v]) continue;
+      const inner = getVertex(RADII[g], v);
+      const outer = getVertex(RADII[g + 1], v);
+      ctx.beginPath();
+      ctx.moveTo(inner.x, inner.y);
+      ctx.lineTo(outer.x, outer.y);
+      ctx.strokeStyle = '#4a90d9';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  // Exit arrows
+  for (let s = 0; s < 8; s++) {
+    if (walls[LAYERS - 1][s]) continue;
+    const mid = sideMidpoint(RADII[LAYERS - 1], s);
+    const angle = -Math.PI / 2 - Math.PI / 8 + (s + 0.5) * Math.PI / 4;
+    const ax = mid.x + 18 * Math.cos(angle);
+    const ay = mid.y + 18 * Math.sin(angle);
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(mid.x, mid.y); ctx.lineTo(ax, ay); ctx.stroke();
+    const ha = 7;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay); ctx.lineTo(ax - ha * Math.cos(angle - 0.4), ay - ha * Math.sin(angle - 0.4));
+    ctx.moveTo(ax, ay); ctx.lineTo(ax - ha * Math.cos(angle + 0.4), ay - ha * Math.sin(angle + 0.4));
+    ctx.stroke();
+  }
+}
+
+function drawPlayer() {
+  const px = player.x, py = player.y;
+  const r = PLAYER_R;
+  const now = performance.now();
+
+  // Record trail
+  if (trail.length === 0 || Math.abs(trail[trail.length-1].x - px) > 0.5 || Math.abs(trail[trail.length-1].y - py) > 0.5) {
+    trail.push({ x: px, y: py, t: now });
+    if (trail.length > TRAIL_MAX) trail.shift();
+  }
+
+  // --- Energy tail (trailing wisps) ---
+  for (let i = 0; i < trail.length - 1; i++) {
+    const alpha = (i / trail.length) * 0.35;
+    const sz = r * 0.3 + (i / trail.length) * r * 0.5;
+    ctx.beginPath();
+    ctx.arc(trail[i].x, trail[i].y, sz, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,212,255,' + alpha + ')';
+    ctx.fill();
+  }
+
+  // --- Outer glow ---
+  const glow = ctx.createRadialGradient(px, py, r * 0.5, px, py, r * 2.8);
+  glow.addColorStop(0, 'rgba(0,212,255,0.25)');
+  glow.addColorStop(0.5, 'rgba(255,200,50,0.1)');
+  glow.addColorStop(1, 'rgba(0,212,255,0)');
+  ctx.beginPath();
+  ctx.arc(px, py, r * 2.8, 0, Math.PI * 2);
+  ctx.fillStyle = glow;
+  ctx.fill();
+
+  // --- Body (round) ---
+  const bodyGrad = ctx.createRadialGradient(px - r*0.2, py - r*0.2, 0, px, py, r);
+  bodyGrad.addColorStop(0, '#fff5dd');
+  bodyGrad.addColorStop(0.4, '#ffc832');
+  bodyGrad.addColorStop(1, '#e09000');
+  ctx.beginPath();
+  ctx.arc(px, py, r, 0, Math.PI * 2);
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+
+  // --- Ears (two small triangles) ---
+  ctx.fillStyle = '#ffc832';
+  // Left ear
+  ctx.beginPath();
+  ctx.moveTo(px - r * 0.65, py - r * 0.3);
+  ctx.lineTo(px - r * 0.9, py - r * 1.35);
+  ctx.lineTo(px - r * 0.1, py - r * 0.7);
+  ctx.closePath();
+  ctx.fill();
+  // Right ear
+  ctx.beginPath();
+  ctx.moveTo(px + r * 0.65, py - r * 0.3);
+  ctx.lineTo(px + r * 0.9, py - r * 1.35);
+  ctx.lineTo(px + r * 0.1, py - r * 0.7);
+  ctx.closePath();
+  ctx.fill();
+  // Inner ear (darker)
+  ctx.fillStyle = '#e09000';
+  ctx.beginPath();
+  ctx.moveTo(px - r * 0.55, py - r * 0.4);
+  ctx.lineTo(px - r * 0.75, py - r * 1.1);
+  ctx.lineTo(px - r * 0.2, py - r * 0.65);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(px + r * 0.55, py - r * 0.4);
+  ctx.lineTo(px + r * 0.75, py - r * 1.1);
+  ctx.lineTo(px + r * 0.2, py - r * 0.65);
+  ctx.closePath();
+  ctx.fill();
+
+  // --- Eyes (two bright dots) ---
+  const eyeY = py - r * 0.15;
+  const eyeSpacing = r * 0.38;
+  const eyeR = r * 0.22;
+  // Eye whites
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(px - eyeSpacing, eyeY, eyeR + 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(px + eyeSpacing, eyeY, eyeR + 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  // Pupils (cyan glow for tech feel)
+  ctx.fillStyle = '#00d4ff';
+  ctx.beginPath();
+  ctx.arc(px - eyeSpacing, eyeY, eyeR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(px + eyeSpacing, eyeY, eyeR, 0, Math.PI * 2);
+  ctx.fill();
+  // Eye highlight
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(px - eyeSpacing + 0.5, eyeY - 0.5, eyeR * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(px + eyeSpacing + 0.5, eyeY - 0.5, eyeR * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // --- Nose (tiny triangle) ---
+  ctx.fillStyle = '#ff8866';
+  ctx.beginPath();
+  ctx.moveTo(px, py + r * 0.15);
+  ctx.lineTo(px - r * 0.12, py + r * 0.3);
+  ctx.lineTo(px + r * 0.12, py + r * 0.3);
+  ctx.closePath();
+  ctx.fill();
+
+  // --- Breathing glow pulse ---
+  const pulse = Math.sin(now * 0.004) * 0.15 + 0.85;
+  ctx.beginPath();
+  ctx.arc(px, py, r * 1.3 * pulse, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,212,255,' + (0.15 * pulse) + ')';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+// ========== COLLISION ==========
+function pointToSegmentDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
+  let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const projX = ax + t * dx, projY = ay + t * dy;
+  return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2);
+}
+
+let wallSegments = [];
+function cacheWallSegments() {
+  wallSegments = [];
+  for (let l = 0; l < LAYERS; l++) {
+    for (let s = 0; s < 8; s++) {
+      if (!walls[l][s]) continue;
+      const v1 = getVertex(RADII[l], s);
+      const v2 = getVertex(RADII[l], (s + 1) % 8);
+      wallSegments.push({ x1: v1.x, y1: v1.y, x2: v2.x, y2: v2.y });
+    }
+  }
+  for (let g = 0; g < NUM_GAPS; g++) {
+    for (let v = 0; v < 8; v++) {
+      if (!radialWalls[g][v]) continue;
+      const inner = getVertex(RADII[g], v);
+      const outer = getVertex(RADII[g + 1], v);
+      wallSegments.push({ x1: inner.x, y1: inner.y, x2: outer.x, y2: outer.y });
+    }
+  }
+}
+
+function canMoveTo(nx, ny) {
+  const r = PLAYER_R;
+  for (const w of wallSegments) {
+    if (pointToSegmentDist(nx, ny, w.x1, w.y1, w.x2, w.y2) < r) return false;
+  }
+  return true;
+}
+
+function pushOutOfWalls() {
+  const r = PLAYER_R + 0.5;
+  for (let iter = 0; iter < 5; iter++) {
+    let pushed = false;
+    for (const w of wallSegments) {
+      const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+      const lenSq = dx * dx + dy * dy;
+      if (lenSq === 0) continue;
+      let t = ((player.x - w.x1) * dx + (player.y - w.y1) * dy) / lenSq;
+      t = Math.max(0, Math.min(1, t));
+      const projX = w.x1 + t * dx, projY = w.y1 + t * dy;
+      const distX = player.x - projX, distY = player.y - projY;
+      const dist = Math.sqrt(distX * distX + distY * distY);
+      if (dist < r && dist > 0.01) {
+        const push = (r - dist) + 0.1;
+        player.x += (distX / dist) * push;
+        player.y += (distY / dist) * push;
+        pushed = true;
+      }
+    }
+    if (!pushed) break;
+  }
+}
+
+function movePlayer(dx, dy) {
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 0.01) return;
+  const STEP = 1.5;
+  const steps = Math.ceil(dist / STEP);
+  const sx = dx / steps, sy = dy / steps;
+  for (let i = 0; i < steps; i++) {
+    const nx = player.x + sx, ny = player.y + sy;
+    if (canMoveTo(nx, ny)) {
+      player.x = nx; player.y = ny;
+    } else if (canMoveTo(player.x + sx, player.y)) {
+      player.x += sx;
+    } else if (canMoveTo(player.x, player.y + sy)) {
+      player.y += sy;
+    } else {
+      break;
+    }
+  }
+}
+
+function checkWin() {
+  const dist = Math.sqrt((player.x - CX) ** 2 + (player.y - CY) ** 2);
+  return dist > RADII[LAYERS - 1] + PLAYER_R + 10;
+}
+
+// ========== TIMER ==========
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+function formatTimePrecise(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = (seconds % 60).toFixed(1);
+  return (m > 0 ? m + '分' : '') + s + '秒';
+}
+function updateTimerDisplay() {
+  if (timerRunning) elapsedTime = (performance.now() - timerStart) / 1000;
+  document.getElementById('timer-display').textContent = formatTime(elapsedTime);
+}
+
+// ========== RECORDS PANEL ==========
+// Track which groups are expanded (default: current major expanded)
+let expandedGroups = {};
+
+function renderRecordsPanel() {
+  const list = document.getElementById('records-list');
+  let html = '';
+  let totalTime = 0;
+  let hasAny = false;
+
+  for (let maj = 1; maj <= MAX_MAJOR; maj++) {
+    const minorCount = MINOR_COUNTS[maj - 1];
+    const isCurMajor = (maj === currentMajor);
+
+    // Count completed in this group
+    let doneCount = 0;
+    let groupTime = 0;
+    for (let min = 1; min <= minorCount; min++) {
+      const rec = saveData.records[maj + '-' + min];
+      if (rec !== undefined) { doneCount++; groupTime += rec; totalTime += rec; hasAny = true; }
+    }
+
+    // Auto-expand current major, collapse others unless user toggled
+    const isExpanded = expandedGroups[maj] !== undefined ? expandedGroups[maj] : isCurMajor;
+    const arrowCls = isExpanded ? 'arrow open' : 'arrow';
+    const itemsCls = isExpanded ? 'record-group-items' : 'record-group-items collapsed';
+
+    html += '<div class="record-group">';
+    html += '<div class="record-group-header" onclick="toggleGroup(' + maj + ')">';
+    html += '<span><span class="' + arrowCls + '">&#9654;</span> 第' + maj + '大关（' + BASE_LAYERS[maj - 1] + '层）</span>';
+    html += '<span class="progress">' + doneCount + '/' + minorCount + '</span>';
+    html += '</div>';
+    html += '<div class="' + itemsCls + '">';
+
+    for (let min = 1; min <= minorCount; min++) {
+      const key = maj + '-' + min;
+      const isCurrent = (maj === currentMajor && min === currentMinor);
+      const record = saveData.records[key];
+      const cls = isCurrent ? ' current' : '';
+      const timeStr = record !== undefined
+        ? '<span class="time">' + formatTime(record) + '</span>'
+        : '<span class="time empty">--:--</span>';
+      html += '<div class="record-item' + cls + '"><span>' + key + '</span>' + timeStr + '</div>';
+    }
+
+    html += '</div></div>';
+  }
+
+  list.innerHTML = html;
+  document.getElementById('total-time-val').textContent = hasAny ? formatTime(totalTime) : '--';
+
+  // Auto-scroll to current level
+  setTimeout(() => {
+    const cur = list.querySelector('.record-item.current');
+    if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, 50);
+}
+
+function toggleGroup(maj) {
+  const wasExpanded = expandedGroups[maj] !== undefined ? expandedGroups[maj] : (maj === currentMajor);
+  expandedGroups[maj] = !wasExpanded;
+  renderRecordsPanel();
+}
+
+// ========== LEVEL MANAGEMENT ==========
+function setupLevel(major, minor) {
+  const config = getLevelConfig(major, minor);
+  const baseGaps = config.baseLayers - 1;
+
+  // Total rings = 1 + baseGaps * subdivision
+  LAYERS = 1 + baseGaps * config.subdivision;
+  NUM_GAPS = LAYERS - 1;
+  extraOpenRate = config.extraOpenRate;
+  levelExitCount = config.exitCount;
+
+  RADII = [];
+  const minR = SIZE * 0.08;
+  const maxR = SIZE * 0.46;
+  for (let i = 0; i < LAYERS; i++) {
+    RADII.push(minR + (maxR - minR) * i / (LAYERS - 1));
+  }
+}
+
+function startLevel(major, minor) {
+  currentMajor = major;
+  currentMinor = minor;
+  saveCurrentLevel(major, minor);
+
+  setupLevel(major, minor);
+  generateMaze();
+  cacheWallSegments();
+
+  player.x = CX; player.y = CY;
+  trail.length = 0;
+  won = false;
+  elapsedTime = 0;
+  lastFrameTime = 0;
+  timerStart = performance.now();
+  timerRunning = true;
+  isDragging = false;
+  mouseTarget = null;
+
+  // Auto-expand current major group
+  expandedGroups[major] = true;
+
+  document.getElementById('level-display').textContent = '第 ' + major + '-' + minor + ' 关';
+  document.getElementById('win-msg').style.display = 'none';
+  renderRecordsPanel();
+  requestAnimationFrame(gameLoop);
+}
+
+function onWin() {
+  won = true;
+  timerRunning = false;
+  elapsedTime = (performance.now() - timerStart) / 1000;
+
+  const key = currentMajor + '-' + currentMinor;
+  const prevBest = saveData.records[key];
+  saveRecord(currentMajor, currentMinor, elapsedTime);
+
+  document.getElementById('win-level-text').textContent = '第 ' + key + ' 关';
+  document.getElementById('win-time-text').textContent = '用时 ' + formatTimePrecise(elapsedTime);
+
+  const bestEl = document.getElementById('win-best-text');
+  bestEl.style.color = '#aaa';
+  if (prevBest !== undefined && prevBest < elapsedTime) {
+    bestEl.textContent = '最佳记录 ' + formatTimePrecise(prevBest);
+  } else if (prevBest !== undefined && elapsedTime <= prevBest) {
+    bestEl.textContent = '新纪录！';
+    bestEl.style.color = '#00ff88';
+  } else {
+    bestEl.textContent = '';
+  }
+
+  const minorCount = MINOR_COUNTS[currentMajor - 1];
+  const isLast = (currentMajor === MAX_MAJOR && currentMinor === minorCount);
+  document.getElementById('btn-next').textContent = isLast ? '查看排行榜' : '下一关';
+
+  if (isLast) {
+    document.getElementById('btn-next').onclick = function() {
+      document.getElementById('win-msg').style.display = 'none';
+      promptLeaderboardEntry();
+    };
+  } else {
+    document.getElementById('btn-next').onclick = nextLevel;
+  }
+
+  document.getElementById('win-msg').style.display = 'block';
+  renderRecordsPanel();
+}
+
+function retryLevel() {
+  startLevel(currentMajor, currentMinor);
+}
+
+function nextLevel() {
+  let maj = currentMajor, min = currentMinor;
+  const minorCount = MINOR_COUNTS[maj - 1];
+  min++;
+  if (min > minorCount) {
+    min = 1;
+    maj++;
+    if (maj > MAX_MAJOR) return;
+  }
+  startLevel(maj, min);
+}
+
+// ========== INPUT: KEYBOARD ==========
+const keys = {};
+document.addEventListener('keydown', e => {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+    keys[e.key] = true;
+  }
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// ========== INPUT: MOUSE DRAG ==========
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+}
+canvas.addEventListener('mousedown', e => { isDragging = true; mouseTarget = getCanvasPos(e); e.preventDefault(); });
+document.addEventListener('mousemove', e => { if (isDragging) mouseTarget = getCanvasPos(e); });
+document.addEventListener('mouseup', () => { isDragging = false; mouseTarget = null; });
+canvas.addEventListener('touchstart', e => { isDragging = true; mouseTarget = getCanvasPos(e); e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => { if (isDragging) { mouseTarget = getCanvasPos(e); e.preventDefault(); } }, { passive: false });
+document.addEventListener('touchend', () => { isDragging = false; mouseTarget = null; });
+
+// ========== GAME LOOP ==========
+function gameLoop(timestamp) {
+  if (won) return;
+
+  if (!lastFrameTime) lastFrameTime = timestamp;
+  const dt = Math.min((timestamp - lastFrameTime) / 1000, 0.05);
+  lastFrameTime = timestamp;
+  const speed = MOVE_SPEED * dt;
+
+  let dx = 0, dy = 0;
+  if (keys['ArrowUp']) dy -= 1;
+  if (keys['ArrowDown']) dy += 1;
+  if (keys['ArrowLeft']) dx -= 1;
+  if (keys['ArrowRight']) dx += 1;
+
+  if (dx !== 0 || dy !== 0) {
+    const len = Math.sqrt(dx * dx + dy * dy);
+    movePlayer((dx / len) * speed, (dy / len) * speed);
+  }
+
+  if (isDragging && mouseTarget) {
+    const mx = mouseTarget.x - player.x, my = mouseTarget.y - player.y;
+    const md = Math.sqrt(mx * mx + my * my);
+    if (md > PLAYER_R) {
+      const move = Math.min(speed, md);
+      movePlayer((mx / md) * move, (my / md) * move);
+    }
+  }
+
+  pushOutOfWalls();
+  updateTimerDisplay();
+  drawMaze();
+  drawPlayer();
+
+  if (checkWin()) { onWin(); return; }
+  requestAnimationFrame(gameLoop);
+}
+
+// ========== LEADERBOARD ==========
+function loadLeaderboard() {
+  try {
+    const raw = localStorage.getItem(LB_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+}
+function saveLeaderboard(lb) {
+  try { localStorage.setItem(LB_STORAGE_KEY, JSON.stringify(lb)); } catch (e) {}
+}
+
+function getTotalLevels() {
+  return MINOR_COUNTS.reduce((a, b) => a + b, 0);
+}
+
+function isAllCleared() {
+  for (let maj = 1; maj <= MAX_MAJOR; maj++) {
+    for (let min = 1; min <= MINOR_COUNTS[maj - 1]; min++) {
+      if (saveData.records[maj + '-' + min] === undefined) return false;
+    }
+  }
+  return true;
+}
+
+function calcTotalTime(records) {
+  let total = 0;
+  for (let maj = 1; maj <= MAX_MAJOR; maj++) {
+    for (let min = 1; min <= MINOR_COUNTS[maj - 1]; min++) {
+      const t = records[maj + '-' + min];
+      if (t !== undefined) total += t;
+    }
+  }
+  return total;
+}
+
+// Show name input after full clear
+let pendingLbRecords = null;
+function promptLeaderboardEntry() {
+  pendingLbRecords = JSON.parse(JSON.stringify(saveData.records));
+  const total = calcTotalTime(pendingLbRecords);
+  document.getElementById('name-modal-time').textContent = '总用时 ' + formatTimePrecise(total);
+  document.getElementById('player-name-input').value = '';
+  document.getElementById('name-modal').classList.add('show');
+  setTimeout(() => document.getElementById('player-name-input').focus(), 100);
+}
+
+function submitToLeaderboard() {
+  const name = document.getElementById('player-name-input').value.trim();
+  if (!name) {
+    document.getElementById('player-name-input').style.borderColor = '#ff6666';
+    document.getElementById('player-name-input').focus();
+    return;
+  }
+  const lb = loadLeaderboard();
+  const total = calcTotalTime(pendingLbRecords);
+  lb.push({
+    name: name,
+    totalTime: Math.round(total * 100) / 100,
+    records: pendingLbRecords,
+    date: new Date().toISOString().slice(0, 10),
+  });
+  lb.sort((a, b) => a.totalTime - b.totalTime);
+  // Keep top 50
+  if (lb.length > 50) lb.length = 50;
+  saveLeaderboard(lb);
+  pendingLbRecords = null;
+  closeNameModal();
+  showLeaderboard();
+}
+
+function closeNameModal() {
+  document.getElementById('name-modal').classList.remove('show');
+  pendingLbRecords = null;
+}
+
+// Leaderboard display
+function showLeaderboard() {
+  const lb = loadLeaderboard();
+  const container = document.getElementById('lb-content');
+
+  if (lb.length === 0) {
+    container.innerHTML = '<div class="lb-empty">暂无记录<br><span style="font-size:12px;color:#444;">全部通关后可提交成绩</span></div>';
+    document.getElementById('lb-modal').classList.add('show');
+    return;
+  }
+
+  let html = '<table class="lb-table"><thead><tr><th></th><th>玩家</th><th style="text-align:right">总用时</th><th style="text-align:right">日期</th></tr></thead><tbody>';
+  const medals = ['', '', ''];
+  lb.forEach((entry, i) => {
+    const medal = i < 3 ? '<span class="lb-medal">' + medals[i] + '</span>' : '';
+    const rankText = medal || (i + 1);
+    html += '<tr onclick="showLbDetail(' + i + ')">';
+    html += '<td class="lb-rank">' + rankText + '</td>';
+    html += '<td class="lb-name">' + escHtml(entry.name) + '</td>';
+    html += '<td class="lb-time">' + formatTime(entry.totalTime) + '</td>';
+    html += '<td class="lb-date">' + (entry.date || '') + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  container.innerHTML = html;
+  document.getElementById('lb-modal').classList.add('show');
+}
+
+function showLbDetail(index) {
+  const lb = loadLeaderboard();
+  const entry = lb[index];
+  if (!entry) return;
+
+  let html = '<button class="lb-detail-back" onclick="showLeaderboard()">&larr; 返回排行榜</button>';
+  html += '<div class="lb-detail-header">';
+  html += '<h3>' + escHtml(entry.name) + '</h3>';
+  html += '<span class="total">' + formatTimePrecise(entry.totalTime) + '</span>';
+  html += '</div>';
+
+  for (let maj = 1; maj <= MAX_MAJOR; maj++) {
+    const minorCount = MINOR_COUNTS[maj - 1];
+    html += '<div class="lb-detail-group">';
+    html += '<div class="lb-detail-group-title">第' + maj + '大关（' + BASE_LAYERS[maj - 1] + '层 &times; ' + minorCount + '关）</div>';
+    for (let min = 1; min <= minorCount; min++) {
+      const key = maj + '-' + min;
+      const t = entry.records[key];
+      const timeStr = t !== undefined ? formatTime(t) : '--:--';
+      html += '<div class="lb-detail-item"><span>' + key + '</span><span class="time">' + timeStr + '</span></div>';
+    }
+    html += '</div>';
+  }
+
+  document.getElementById('lb-content').innerHTML = html;
+}
+
+function closeLeaderboard() {
+  document.getElementById('lb-modal').classList.remove('show');
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ========== BACKGROUND EFFECTS ==========
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx = bgCanvas.getContext('2d');
+let bgW, bgH;
+
+function resizeBg() {
+  bgW = bgCanvas.width = window.innerWidth;
+  bgH = bgCanvas.height = window.innerHeight;
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+// --- Stars ---
+const stars = [];
+const STAR_COUNT = 120;
+for (let i = 0; i < STAR_COUNT; i++) {
+  stars.push({
+    x: Math.random() * 2000,
+    y: Math.random() * 2000,
+    r: Math.random() * 1.5 + 0.3,
+    baseAlpha: Math.random() * 0.6 + 0.2,
+    twinkleSpeed: Math.random() * 2 + 1,
+    twinkleOffset: Math.random() * Math.PI * 2,
+  });
+}
+
+// --- Particles (floating + connection lines) ---
+const particles = [];
+const PARTICLE_COUNT = 60;
+const CONNECT_DIST = 150;
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+  particles.push({
+    x: Math.random() * 2000,
+    y: Math.random() * 2000,
+    vx: (Math.random() - 0.5) * 0.4,
+    vy: (Math.random() - 0.5) * 0.4,
+    r: Math.random() * 2 + 1,
+    hue: Math.random() < 0.5 ? 190 : 45, // cyan or gold
+    alpha: Math.random() * 0.4 + 0.2,
+  });
+}
+
+// --- Fireworks ---
+let fireworks = [];
+let fireworkParticles = [];
+
+function launchFireworks(count) {
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const fx = bgW * 0.2 + Math.random() * bgW * 0.6;
+      const fy = bgH * 0.15 + Math.random() * bgH * 0.35;
+      const hue = Math.random() * 360;
+      const sparkCount = 40 + Math.floor(Math.random() * 30);
+      for (let j = 0; j < sparkCount; j++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3 + 1;
+        fireworkParticles.push({
+          x: fx, y: fy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1.0,
+          decay: Math.random() * 0.015 + 0.01,
+          hue: hue + Math.random() * 40 - 20,
+          r: Math.random() * 2 + 1,
+          gravity: 0.03,
+        });
+      }
+    }, i * 400 + Math.random() * 200);
+  }
+}
+
+// Hook into onWin to trigger fireworks
+const _origOnWin = onWin;
+onWin = function() {
+  _origOnWin();
+  launchFireworks(5);
+  refreshFloatingNames(); // refresh in case new record added
+};
+
+// --- Floating leaderboard names ---
+// Tier config for floating names: rank → visual style
+// Tier 0: #1 champion — largest, golden glow, pulsing aura
+// Tier 1: #2-3 — large, cyan glow
+// Tier 2: #4-8 — medium, subtle glow
+// Tier 3: #9-15 — smaller, faint
+function getNameTier(rank) {
+  if (rank === 1) return 0;
+  if (rank <= 3) return 1;
+  if (rank <= 8) return 2;
+  return 3;
+}
+const TIER_CONFIG = [
+  { fontSize: 26, alpha: 0.55, speed: 0.25, color1: [255,215,0], color2: [255,165,0], glow: true, glowSize: 20, glowColor: 'rgba(255,200,50,', aura: true, prefix: '' },
+  { fontSize: 22, alpha: 0.40, speed: 0.3, color1: [0,230,255], color2: [100,200,255], glow: true, glowSize: 12, glowColor: 'rgba(0,212,255,', aura: false, prefix: '' },
+  { fontSize: 17, alpha: 0.28, speed: 0.35, color1: [120,180,255], color2: [80,140,220], glow: true, glowSize: 6, glowColor: 'rgba(100,160,255,', aura: false, prefix: '' },
+  { fontSize: 14, alpha: 0.18, speed: 0.4, color1: [100,140,180], color2: [80,120,160], glow: false, glowSize: 0, glowColor: '', aura: false, prefix: '' },
+];
+
+let floatingNames = [];
+function refreshFloatingNames() {
+  const lb = loadLeaderboard();
+  if (lb.length === 0) { floatingNames = []; return; }
+  const count = Math.min(lb.length, 15);
+  const existingMap = {};
+  for (const fn of floatingNames) existingMap[fn.key] = fn;
+  const newList = [];
+  for (let i = 0; i < count; i++) {
+    const entry = lb[i];
+    const rank = i + 1;
+    const key = entry.name + '|' + entry.totalTime;
+    const tier = getNameTier(rank);
+    const tc = TIER_CONFIG[tier];
+    const medals = ['', '', ''];
+    const medal = rank <= 3 ? medals[rank - 1] + ' ' : '';
+    if (existingMap[key]) {
+      // Update tier visuals but keep position
+      const ex = existingMap[key];
+      ex.tier = tier;
+      ex.text = medal + '#' + rank + ' ' + entry.name + '  ' + formatTime(entry.totalTime);
+      newList.push(ex);
+    } else {
+      newList.push({
+        key, tier, rank,
+        text: medal + '#' + rank + ' ' + entry.name + '  ' + formatTime(entry.totalTime),
+        x: Math.random() * (bgW || 1400),
+        y: 50 + Math.random() * ((bgH || 900) - 100),
+        vx: (Math.random() > 0.5 ? 1 : -1) * (tc.speed + Math.random() * 0.15),
+        vy: (Math.random() - 0.5) * 0.15,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+  floatingNames = newList;
+}
+// Seed fake leaderboard data if empty
+function seedFakeLeaderboard() {
+  const lb = loadLeaderboard();
+  if (lb.length > 0) return;
+  const fakeNames = [
+    { name: '青云道人', totalTime: 3842.5 },
+    { name: '星辰剑客', totalTime: 4215.8 },
+    { name: 'CyberFox', totalTime: 4580.3 },
+    { name: '量子行者', totalTime: 5120.1 },
+    { name: '玄武大师', totalTime: 5890.7 },
+    { name: 'NeonWalker', totalTime: 6340.2 },
+    { name: '太虚真人', totalTime: 7105.9 },
+    { name: '幻影忍者', totalTime: 7820.4 },
+  ];
+  const fakeRecords = {};
+  // Generate plausible per-level times
+  for (let maj = 1; maj <= MAX_MAJOR; maj++) {
+    for (let min = 1; min <= MINOR_COUNTS[maj - 1]; min++) {
+      fakeRecords[maj + '-' + min] = 5 + Math.random() * 30 + maj * 5 + min * 0.5;
+    }
+  }
+  const fakeLb = fakeNames.map(f => ({
+    name: f.name,
+    totalTime: f.totalTime,
+    records: JSON.parse(JSON.stringify(fakeRecords)),
+    date: '2026-04-' + String(10 + Math.floor(Math.random() * 8)).padStart(2, '0'),
+  }));
+  fakeLb.sort((a, b) => a.totalTime - b.totalTime);
+  saveLeaderboard(fakeLb);
+}
+seedFakeLeaderboard();
+
+// Init on load
+setTimeout(refreshFloatingNames, 100);
+
+// --- Background animation loop ---
+function bgLoop(t) {
+  // Dark background on this canvas instead of body
+  bgCtx.fillStyle = '#1a1a2e';
+  bgCtx.fillRect(0, 0, bgW, bgH);
+
+  // Draw stars
+  for (const s of stars) {
+    const twinkle = Math.sin(t * 0.001 * s.twinkleSpeed + s.twinkleOffset);
+    const alpha = s.baseAlpha + twinkle * 0.3;
+    if (alpha <= 0) continue;
+    bgCtx.beginPath();
+    bgCtx.arc(s.x % bgW, s.y % bgH, s.r, 0, Math.PI * 2);
+    bgCtx.fillStyle = 'rgba(200,220,255,' + Math.min(1, alpha) + ')';
+    bgCtx.fill();
+  }
+
+  // Update & draw particles
+  for (const p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.x < 0) p.x += bgW;
+    if (p.x > bgW) p.x -= bgW;
+    if (p.y < 0) p.y += bgH;
+    if (p.y > bgH) p.y -= bgH;
+    bgCtx.beginPath();
+    bgCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    bgCtx.fillStyle = 'hsla(' + p.hue + ',80%,65%,' + p.alpha + ')';
+    bgCtx.fill();
+  }
+
+  // Connection lines between nearby particles
+  bgCtx.lineWidth = 0.5;
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < CONNECT_DIST) {
+        const alpha = (1 - dist / CONNECT_DIST) * 0.25;
+        bgCtx.beginPath();
+        bgCtx.moveTo(particles[i].x, particles[i].y);
+        bgCtx.lineTo(particles[j].x, particles[j].y);
+        bgCtx.strokeStyle = 'rgba(0,212,255,' + alpha + ')';
+        bgCtx.stroke();
+      }
+    }
+  }
+
+  // Update & draw firework particles
+  for (let i = fireworkParticles.length - 1; i >= 0; i--) {
+    const fp = fireworkParticles[i];
+    fp.x += fp.vx;
+    fp.y += fp.vy;
+    fp.vy += fp.gravity;
+    fp.vx *= 0.99;
+    fp.vy *= 0.99;
+    fp.life -= fp.decay;
+    if (fp.life <= 0) {
+      fireworkParticles.splice(i, 1);
+      continue;
+    }
+    bgCtx.beginPath();
+    bgCtx.arc(fp.x, fp.y, fp.r * fp.life, 0, Math.PI * 2);
+    bgCtx.fillStyle = 'hsla(' + fp.hue + ',90%,60%,' + fp.life + ')';
+    bgCtx.fill();
+    if (fp.life > 0.3) {
+      bgCtx.beginPath();
+      bgCtx.arc(fp.x - fp.vx, fp.y - fp.vy, fp.r * fp.life * 0.5, 0, Math.PI * 2);
+      bgCtx.fillStyle = 'hsla(' + fp.hue + ',90%,70%,' + fp.life * 0.4 + ')';
+      bgCtx.fill();
+    }
+  }
+
+  // Floating leaderboard names — tiered effects
+  for (const fn of floatingNames) {
+    const tc = TIER_CONFIG[fn.tier];
+    fn.x += fn.vx;
+    fn.y += fn.vy;
+    // Gentle wave motion
+    const wave = Math.sin(t * 0.0008 + fn.phase) * 0.3;
+    fn.y += wave;
+    // Wrap around
+    if (fn.x < -300) fn.x += bgW + 400;
+    if (fn.x > bgW + 100) fn.x -= bgW + 400;
+    if (fn.y < -40) fn.y += bgH + 60;
+    if (fn.y > bgH + 40) fn.y -= bgH + 60;
+
+    const pulse = Math.sin(t * 0.003 + fn.phase) * 0.5 + 0.5; // 0~1
+    const alpha = tc.alpha + pulse * 0.1;
+    const c1 = tc.color1, c2 = tc.color2;
+    // Interpolate color with pulse
+    const cr = Math.floor(c1[0] + (c2[0] - c1[0]) * pulse);
+    const cg = Math.floor(c1[1] + (c2[1] - c1[1]) * pulse);
+    const cb = Math.floor(c1[2] + (c2[2] - c1[2]) * pulse);
+
+    bgCtx.save();
+    bgCtx.font = 'bold ' + tc.fontSize + 'px "Courier New", monospace';
+
+    // Tier 0 (champion): rotating aura ring
+    if (tc.aura) {
+      const ax = fn.x + bgCtx.measureText(fn.text).width / 2;
+      const ay = fn.y - tc.fontSize * 0.3;
+      const auraR = tc.fontSize * 1.8;
+      const auraAngle = t * 0.002;
+      for (let a = 0; a < 6; a++) {
+        const ang = auraAngle + a * Math.PI / 3;
+        const dx = Math.cos(ang) * auraR;
+        const dy = Math.sin(ang) * auraR * 0.3;
+        const dotA = 0.15 + pulse * 0.1;
+        bgCtx.beginPath();
+        bgCtx.arc(ax + dx, ay + dy, 2, 0, Math.PI * 2);
+        bgCtx.fillStyle = 'rgba(255,215,0,' + dotA + ')';
+        bgCtx.fill();
+      }
+    }
+
+    // Glow behind text
+    if (tc.glow) {
+      bgCtx.shadowColor = tc.glowColor + (0.3 + pulse * 0.2) + ')';
+      bgCtx.shadowBlur = tc.glowSize + pulse * 8;
+      bgCtx.shadowOffsetX = 0;
+      bgCtx.shadowOffsetY = 0;
+    }
+
+    // Text
+    bgCtx.fillStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',' + alpha + ')';
+    bgCtx.fillText(fn.text, fn.x, fn.y);
+
+    // Double-draw for champion to make it bolder
+    if (fn.tier === 0) {
+      bgCtx.fillText(fn.text, fn.x, fn.y);
+    }
+
+    bgCtx.restore();
+  }
+
+  requestAnimationFrame(bgLoop);
+}
+requestAnimationFrame(bgLoop);
+
+// ========== RESIZE ==========
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const newSize = calcSize();
+    if (newSize === SIZE) return;
+    // Save player's relative position
+    const relX = (player.x - CX) / (SIZE / 2);
+    const relY = (player.y - CY) / (SIZE / 2);
+    SIZE = newSize;
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    document.documentElement.style.setProperty('--canvas-h', SIZE + 'px');
+    CX = SIZE / 2;
+    CY = SIZE / 2;
+    // Recalculate radii
+    const minR = SIZE * 0.08;
+    const maxR = SIZE * 0.46;
+    for (let i = 0; i < LAYERS; i++) {
+      RADII[i] = minR + (maxR - minR) * i / (LAYERS - 1);
+    }
+    // Restore player position
+    player.x = CX + relX * (SIZE / 2);
+    player.y = CY + relY * (SIZE / 2);
+    cacheWallSegments();
+    pushOutOfWalls();
+    // Update info text
+    updateInfoText();
+    if (!won) {
+      drawMaze();
+      drawPlayer();
+    }
+  }, 150);
+});
+
+function updateInfoText() {
+  document.getElementById('info').textContent = isMobile()
+    ? '手指拖拽控制灵狐移动 · 从中心走出迷宫'
+    : '方向键 ↑↓←→ 或鼠标拖拽控制移动 · 从中心走出迷宫';
+}
+updateInfoText();
+
+// ========== START ==========
+startLevel(currentMajor, currentMinor);
+
+// ESC to close modals
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeLeaderboard();
+    closeNameModal();
+  }
+});
+</script>
+</body>
+</html>
