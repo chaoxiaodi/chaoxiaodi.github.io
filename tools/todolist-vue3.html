@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta http-equiv="refresh" content="600">
+  <meta http-equiv="Access-Control-Allow-Origin" content="*">
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/element-plus"></script>
+  <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+  <title>MISSION CONTROL - TodoList</title>
+</head>
+<body>
+
+<!-- Animated background grid -->
+<div class="bg-grid"></div>
+<div class="scan-line"></div>
+
+<div id="app">
+  <el-container class="cockpit-container">
+    <!-- Header -->
+    <el-header class="cockpit-header">
+      <div class="header-left">
+        <div class="hud-diamond"></div>
+        <span class="header-title">MISSION CONTROL</span>
+        <span class="header-divider">|</span>
+        <span class="header-subtitle">{{headTitle}}</span>
+      </div>
+      <div class="header-right">
+        <button class="about-btn" @click="aboutVisible = true">
+          <span class="about-icon">&#9432;</span> ABOUT
+        </button>
+        <span class="hud-time">{{ currentTime }}</span>
+        <div class="status-dot"></div>
+        <span class="status-text">ONLINE</span>
+      </div>
+    </el-header>
+
+    <el-container class="main-body">
+      <!-- Left Panel -->
+      <el-aside width="340px" class="cockpit-aside">
+        <div class="panel-wrapper">
+          <div class="panel-header">
+            <span class="panel-icon">&#9670;</span>
+            <span>TASK INPUT</span>
+            <div class="panel-line"></div>
+          </div>
+
+          <el-form class="elform">
+            <el-form-item>
+              <label class="field-label">DATETIME SELECT</label>
+              <el-date-picker
+                v-model="dtSelecter"
+                type="datetime"
+                placeholder="选择日期时间"
+                :clearable="false"
+                @change="handerDate"
+                class="cyber-input">
+              </el-date-picker>
+            </el-form-item>
+
+            <el-form-item>
+              <label class="field-label">PRIORITY LEVEL</label>
+              <el-radio-group v-model="radioJobTag" class="cyber-radio-group">
+                <el-radio value="1" border class="cyber-radio priority-critical">
+                  <span class="priority-dot critical"></span>紧急重要
+                </el-radio>
+                <el-radio value="2" border class="cyber-radio priority-high">
+                  <span class="priority-dot high"></span>紧急不重要
+                </el-radio>
+                <el-radio value="3" border class="cyber-radio priority-medium">
+                  <span class="priority-dot medium"></span>重要不紧急
+                </el-radio>
+                <el-radio value="4" border class="cyber-radio priority-low">
+                  <span class="priority-dot low"></span>不紧急不重要
+                </el-radio>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item>
+              <label class="field-label">TASK DESCRIPTION</label>
+              <el-input
+                type="textarea"
+                show-word-limit
+                :maxlength="64"
+                :rows="3"
+                placeholder="输入任务内容 (MAX 64 CHARS)"
+                v-model="textJobInfo"
+                class="cyber-textarea">
+              </el-input>
+            </el-form-item>
+
+            <el-form-item>
+              <div class="btn-group-main">
+                <button type="button" class="cyber-btn btn-add" @click="buttonAdd">
+                  <span class="btn-icon">+</span> 新 增
+                </button>
+                <button type="button" class="cyber-btn btn-done" @click="buttonDone">
+                  <span class="btn-icon">&#10003;</span> 完 成
+                </button>
+              </div>
+            </el-form-item>
+
+            <el-form-item>
+              <label class="field-label">RECURRING TASKS</label>
+              <div class="btn-group-cycle">
+                <button type="button" class="cyber-btn-sm btn-cycle" @click="buttonDay">
+                  <span class="cycle-icon">&#8634;</span> 日
+                </button>
+                <button type="button" class="cyber-btn-sm btn-cycle" @click="buttonWeek">
+                  <span class="cycle-icon">&#8634;</span> 周
+                </button>
+                <button type="button" class="cyber-btn-sm btn-cycle" @click="buttonMonth">
+                  <span class="cycle-icon">&#8634;</span> 月
+                </button>
+              </div>
+            </el-form-item>
+          </el-form>
+        </div>
+      </el-aside>
+
+      <!-- Main Content -->
+      <el-container class="content-area">
+        <el-main class="cockpit-main">
+          <div class="panel-wrapper">
+            <div class="panel-header">
+              <span class="panel-icon">&#9670;</span>
+              <span>TASK OVERVIEW</span>
+              <div class="panel-line"></div>
+              <span class="task-count">{{ taskCount }} ACTIVE</span>
+            </div>
+            <div class="tree-wrapper">
+              <el-tree
+                :data="treeJobData"
+                node-key="id"
+                default-expand-all
+                highlight-current
+                ref="treeJob"
+                :props="defaultProps"
+                @node-click="treeCheckedChanged">
+                <template #default="{ node, data }">
+                  <span class="custom-tree-node" :class="{'is-category': data.disabled}">
+                    <span v-if="data.disabled" class="category-icon">&#9655;</span>
+                    <span v-else class="task-bullet">&#9679;</span>
+                    <span class="node-label">{{ node.label }}</span>
+                    <span v-if="data.disabled && data.children" class="child-count">[{{ data.children.length }}]</span>
+                  </span>
+                </template>
+              </el-tree>
+            </div>
+          </div>
+        </el-main>
+        <el-footer class="cockpit-footer">
+          <span class="footer-line"></span>
+          <span>COPYRIGHT &copy; 2021</span>
+          <el-link href="https://github.com/chaoxiaodi/vuetodolist" type="primary" class="footer-link">VUETODOLIST BY CHAOXIAODI</el-link>
+          <span class="footer-line"></span>
+        </el-footer>
+      </el-container>
+    </el-container>
+  </el-container>
+
+  <!-- About Dialog -->
+  <el-dialog title="ABOUT" v-model="aboutVisible" class="cyber-dialog" width="520px">
+    <div class="about-content">
+      <div class="about-section">
+        <div class="about-heading">MISSION CONTROL - 四象限任务管理</div>
+        <p class="about-desc">基于四象限法则（紧急/重要矩阵）的任务管理工具，帮助你高效地规划和追踪每日待办事项。</p>
+      </div>
+      <div class="about-section">
+        <div class="about-sub-heading">&#9670; 核心功能</div>
+        <ul class="about-list">
+          <li><span class="about-highlight">四象限分类</span> — 按紧急/重要程度自动归类任务</li>
+          <li><span class="about-highlight">周期任务</span> — 支持每日、每周、每月循环任务</li>
+          <li><span class="about-highlight">任务追踪</span> — 实时查看待办与已完成任务</li>
+          <li><span class="about-highlight">历史记录</span> — 按月归档已完成任务</li>
+        </ul>
+      </div>
+      <div class="about-section about-offline">
+        <div class="about-sub-heading">&#9670; 隐私与安全</div>
+        <div class="about-badge">
+          <span class="about-badge-icon">&#9889;</span>
+          <span>100% 离线运行，完全本地存储</span>
+        </div>
+        <ul class="about-list">
+          <li>所有数据仅保存在浏览器本地（localStorage）</li>
+          <li><strong>不上传任何数据到服务器</strong></li>
+          <li>无需登录、无需注册、无需网络连接即可使用</li>
+          <li>你的任务数据完全由你掌控</li>
+        </ul>
+      </div>
+    </div>
+  </el-dialog>
+
+  <!-- Dialog -->
+  <el-dialog :title="dialogTitle" v-model="dialogFormVisible" class="cyber-dialog" width="600px">
+    <el-form>
+      <el-form-item>
+        <div class="dialog-controls">
+          <el-select v-model="dialogTimeSelectValue" filterable placeholder="选择时间" @change="zqTimeChanged" class="cyber-select">
+            <el-option v-for="item in dialogTimeSelectData" :key="item.value" :label="item.label" :value="item.value"></el-option>
+          </el-select>
+          <button type="button" class="cyber-btn btn-add btn-sm" @click="buttonZQAdd">
+            <span class="btn-icon">+</span> 新增
+          </button>
+          <button type="button" class="cyber-btn btn-delete btn-sm" @click="buttonZQDelete">
+            <span class="btn-icon">&#10005;</span> 删除
+          </button>
+        </div>
+      </el-form-item>
+      <el-form-item>
+        <el-input
+          type="textarea"
+          show-word-limit
+          :maxlength="64"
+          :rows="3"
+          placeholder="输入任务内容 (MAX 64 CHARS)"
+          v-model="zqtextJobInfo"
+          class="cyber-textarea">
+        </el-input>
+      </el-form-item>
+      <el-form-item>
+        <el-table
+          :data="tableJobData"
+          stripe
+          style="width: 100%"
+          max-height="250"
+          @row-click="jobTableClick"
+          class="cyber-table">
+          <el-table-column prop="time" label="TIME" width="120"></el-table-column>
+          <el-table-column prop="job" label="TASK"></el-table-column>
+        </el-table>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted, onUnmounted } = Vue
+const { ElMessage } = ElementPlus
+const { Edit, CircleCheck, Refresh, Delete } = ElementPlusIconsVue
+
+const app = createApp({
+  setup() {
+    const squareUrl = 'https://github.com/chaoxiaodi/vuetodolist/blob/main/todolist.png'
+    const headTitle = '四象限任务管理驾驶舱'
+    const currentTime = ref('')
+    let timeInterval = null
+
+    function updateTime() {
+      const now = new Date()
+      const h = String(now.getHours()).padStart(2, '0')
+      const m = String(now.getMinutes()).padStart(2, '0')
+      const s = String(now.getSeconds()).padStart(2, '0')
+      currentTime.value = h + ':' + m + ':' + s
+    }
+
+    const dtSelecter = ref('')
+    const radioJobTag = ref('1')
+    const textJobInfo = ref('')
+    const commonjob = ref([])
+    const dayjob = ref([])
+    const weekjob = ref([])
+    const monthjob = ref([])
+    const historyjob = ref([])
+    const treeJobData = ref([])
+    const defaultProps = { children: 'children', label: 'label' }
+    const treeJobCheckedId = ref('')
+    const treeJob = ref(null)
+
+    const aboutVisible = ref(false)
+    const zqFlag = ref('')
+    const dialogFormVisible = ref(false)
+    const dialogTitle = ref('')
+    const dialogTimeSelectData = ref([])
+    const dialogTimeSelectValue = ref('')
+    const zqtextJobInfo = ref('')
+    const tableJobData = ref([])
+    const tableJobClicked = ref('')
+
+    const taskCount = computed(() => {
+      let count = 0
+      treeJobData.value.forEach(node => {
+        if (node.children && node.id !== '9000') count += node.children.length
+      })
+      return count
+    })
+
+    function getJob(jobname) {
+      const tmp = localStorage.getItem(jobname)
+      if (typeof tmp === 'undefined' || tmp === null) return []
+      return JSON.parse(tmp)
+    }
+    function setJob(jobname, info) {
+      localStorage.setItem(jobname, JSON.stringify(info))
+    }
+
+    function getUuid() {
+      const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
+      const uuid = []
+      for (let i = 0; i < 32; i++) uuid[i] = chars[0 | Math.random() * 16]
+      return uuid.join('')
+    }
+
+    function handerDate(val) {
+      if (val) {
+        const d = val instanceof Date ? val : new Date(val)
+        const year = d.getFullYear()
+        let month = d.getMonth() + 1
+        let date = d.getDate()
+        let hour = d.getHours()
+        let minu = d.getMinutes()
+        let sec = d.getSeconds()
+        if (month < 10) month = '0' + month
+        if (date < 10) date = '0' + date
+        if (hour < 10) hour = '0' + hour
+        if (minu < 10) minu = '0' + minu
+        if (sec < 10) sec = '0' + sec
+        dtSelecter.value = year + '-' + month + '-' + date + ' ' + hour + ':' + minu + ':' + sec
+      }
+    }
+
+    function getShowStateUuids() {
+      const isShowStateList = []
+      commonjob.value = getJob('commonjob')
+      const tmpMonth = dtSelecter.value.slice(0, 7)
+      historyjob.value = getJob(tmpMonth)
+      for (let j = 0; j < commonjob.value.length; j++) {
+        isShowStateList.push(commonjob.value[j].uuid)
+      }
+      const tmpday = dtSelecter.value.slice(0, 10)
+      for (let j = 0; j < historyjob.value.length; j++) {
+        if (historyjob.value[j].donetime.slice(0, 10) === tmpday) {
+          isShowStateList.push(historyjob.value[j].uuid)
+        }
+      }
+      return isShowStateList
+    }
+
+    function checkDayJob() {
+      dayjob.value = getJob('dayjob')
+      const isShowStateList = getShowStateUuids()
+      for (let j = 0; j < dayjob.value.length; j++) {
+        if (!isShowStateList.includes(dayjob.value[j].uuid)) {
+          commonjob.value = getJob('commonjob')
+          commonjob.value.push(dayjob.value[j])
+          setJob('commonjob', commonjob.value)
+        }
+      }
+    }
+
+    function checkWeekJob() {
+      const tmpWeek = new Date().getDay()
+      const weekMap = { 1: '周一', 2: '周二', 3: '周三', 4: '周四', 5: '周五', 6: '周六', 0: '周日' }
+      const tmpWeekzh = weekMap[tmpWeek]
+      weekjob.value = getJob('weekjob')
+      const isShowStateList = getShowStateUuids()
+      for (let j = 0; j < weekjob.value.length; j++) {
+        if (!isShowStateList.includes(weekjob.value[j].uuid) && weekjob.value[j].time === tmpWeekzh) {
+          commonjob.value = getJob('commonjob')
+          commonjob.value.push(weekjob.value[j])
+          setJob('commonjob', commonjob.value)
+        }
+      }
+    }
+
+    function checkMonthJob() {
+      const tmpDay = new Date().getDate() + '号'
+      monthjob.value = getJob('monthjob')
+      const isShowStateList = getShowStateUuids()
+      for (let j = 0; j < monthjob.value.length; j++) {
+        if (!isShowStateList.includes(monthjob.value[j].uuid) && monthjob.value[j].time === tmpDay) {
+          commonjob.value = getJob('commonjob')
+          commonjob.value.push(monthjob.value[j])
+          setJob('commonjob', commonjob.value)
+        }
+      }
+    }
+
+    function showInTree() {
+      handerDate(new Date())
+      checkDayJob()
+      checkWeekJob()
+      checkMonthJob()
+
+      treeJobData.value = []
+      const tmpMonth = dtSelecter.value.slice(0, 7)
+      const tmpDay = dtSelecter.value.slice(0, 10)
+
+      commonjob.value = getJob('commonjob')
+      historyjob.value = getJob(tmpMonth)
+
+      const nodejjzy = { id: '1000', label: '紧急重要', disabled: true }
+      const nodejjbzy = { id: '2000', label: '紧急不重要', disabled: true }
+      const nodezybjj = { id: '3000', label: '重要不紧急', disabled: true }
+      const nodebjjbzy = { id: '4000', label: '不紧急不重要', disabled: true }
+      const nodejrywc = { id: '9000', label: '今日已完成', disabled: true }
+
+      const node1children = []
+      const node2children = []
+      const node3children = []
+      const node4children = []
+      const node9children = []
+
+      for (let j = 0; j < commonjob.value.length; j++) {
+        const item = commonjob.value[j]
+        const tmpChild = { id: item.uuid, label: item.time + ' -- ' + item.job }
+        if (item.jobattr === 1) node1children.push(tmpChild)
+        else if (item.jobattr === 2) node2children.push(tmpChild)
+        else if (item.jobattr === 3) node3children.push(tmpChild)
+        else node4children.push(tmpChild)
+      }
+
+      for (let j = 0; j < historyjob.value.length; j++) {
+        const item = historyjob.value[j]
+        const tmpChild = { id: item.uuid, label: item.time + ' -- ' + item.job }
+        if (item.donetime.slice(0, 10) === tmpDay) {
+          node9children.push(tmpChild)
+        }
+      }
+
+      nodejjzy.children = node1children
+      nodejjbzy.children = node2children
+      nodezybjj.children = node3children
+      nodebjjbzy.children = node4children
+      nodejrywc.children = node9children
+
+      treeJobData.value = [nodejjzy, nodejjbzy, nodezybjj, nodebjjbzy, nodejrywc]
+    }
+
+    function addCheck() {
+      if (dtSelecter.value === '') {
+        ElMessage({ message: '请选择时间！', type: 'error' })
+        return false
+      }
+      if (textJobInfo.value === '') {
+        ElMessage({ message: '请输入待办内容！', type: 'error' })
+        return false
+      }
+      if (textJobInfo.value.length > 64) {
+        ElMessage({ message: '待办内容超长！', type: 'error' })
+        return false
+      }
+      return true
+    }
+
+    function buttonAdd() {
+      if (addCheck()) {
+        const uuid = getUuid()
+        const jobInfo = {
+          uuid,
+          time: dtSelecter.value,
+          tag: '单次任务',
+          jobattr: parseInt(radioJobTag.value),
+          job: textJobInfo.value,
+          doneflag: false,
+          donetime: ''
+        }
+        commonjob.value = getJob('commonjob')
+        commonjob.value.push(jobInfo)
+        setJob('commonjob', commonjob.value)
+        textJobInfo.value = ''
+        showInTree()
+      }
+    }
+
+    function handerDone() {
+      commonjob.value = getJob('commonjob')
+      handerDate(new Date())
+      const tmpMonth = dtSelecter.value.slice(0, 7)
+      let doneJob = null
+      for (let j = 0; j < commonjob.value.length; j++) {
+        if (commonjob.value[j].uuid === treeJobCheckedId.value) {
+          doneJob = commonjob.value[j]
+          commonjob.value.splice(j, 1)
+          break
+        }
+      }
+      if (doneJob !== null) {
+        doneJob.doneflag = true
+        doneJob.donetime = dtSelecter.value
+        setJob('commonjob', commonjob.value)
+        historyjob.value = getJob(tmpMonth)
+        historyjob.value.push(doneJob)
+        setJob(tmpMonth, historyjob.value)
+      } else {
+        ElMessage({ message: '请选择正确的任务', type: 'error' })
+      }
+    }
+
+    function buttonDone() {
+      if (treeJobCheckedId.value === '') {
+        ElMessage({ message: '请选择具体任务', type: 'error' })
+      } else {
+        handerDone()
+        showInTree()
+      }
+    }
+
+    function treeCheckedChanged(val) {
+      if (val.id.length > 4 && !val.doneflag) {
+        treeJobCheckedId.value = val.id
+      } else {
+        treeJobCheckedId.value = ''
+      }
+    }
+
+    function handlerSelectOptions(val) {
+      let optionsData = []
+      if (val === 'day') {
+        for (let j = 1; j < 25; j++) optionsData.push({ value: j + ':00', label: j + ':00' })
+      } else if (val === 'week') {
+        optionsData = [
+          { value: '周一', label: '周一' }, { value: '周二', label: '周二' },
+          { value: '周三', label: '周三' }, { value: '周四', label: '周四' },
+          { value: '周五', label: '周五' }, { value: '周六', label: '周六' },
+          { value: '周日', label: '周日' }
+        ]
+      } else {
+        for (let j = 1; j < 32; j++) optionsData.push({ value: j + '号', label: j + '号' })
+      }
+      return optionsData
+    }
+
+    function showJobList() {
+      const tmpJobName = zqFlag.value + 'job'
+      tableJobData.value = getJob(tmpJobName)
+    }
+
+    function buttonDay() {
+      zqFlag.value = 'day'
+      dialogTitle.value = '新增每日任务'
+      dialogTimeSelectData.value = handlerSelectOptions('day')
+      dialogFormVisible.value = true
+      showJobList()
+    }
+    function buttonWeek() {
+      zqFlag.value = 'week'
+      dialogTitle.value = '新增每周任务'
+      dialogTimeSelectData.value = handlerSelectOptions('week')
+      dialogFormVisible.value = true
+      showJobList()
+    }
+    function buttonMonth() {
+      zqFlag.value = 'month'
+      dialogTitle.value = '新增每月任务'
+      dialogTimeSelectData.value = handlerSelectOptions('month')
+      dialogFormVisible.value = true
+      showJobList()
+    }
+    function zqTimeChanged(val) { dialogTimeSelectValue.value = val }
+
+    function zqAddCheck() {
+      if (dialogTimeSelectValue.value === '') {
+        ElMessage({ message: '请选择时间！', type: 'error' })
+        return false
+      }
+      if (zqtextJobInfo.value === '') {
+        ElMessage({ message: '请输入待办内容！', type: 'error' })
+        return false
+      }
+      if (zqtextJobInfo.value.length > 64) {
+        ElMessage({ message: '待办内容超长！', type: 'error' })
+        return false
+      }
+      return true
+    }
+
+    function buttonZQAdd() {
+      if (zqAddCheck()) {
+        const uuid = getUuid()
+        const jobInfo = {
+          uuid,
+          time: dialogTimeSelectValue.value,
+          jobattr: 1,
+          job: zqtextJobInfo.value,
+          doneflag: false,
+          donetime: ''
+        }
+        if (zqFlag.value === 'day') {
+          jobInfo.tag = '每日任务'
+          dayjob.value = getJob('dayjob')
+          dayjob.value.push(jobInfo)
+          setJob('dayjob', dayjob.value)
+        }
+        if (zqFlag.value === 'week') {
+          jobInfo.tag = '每周任务'
+          weekjob.value = getJob('weekjob')
+          weekjob.value.push(jobInfo)
+          setJob('weekjob', weekjob.value)
+        }
+        if (zqFlag.value === 'month') {
+          jobInfo.tag = '每月任务'
+          monthjob.value = getJob('monthjob')
+          monthjob.value.push(jobInfo)
+          setJob('monthjob', monthjob.value)
+        }
+        zqtextJobInfo.value = ''
+        showInTree()
+        showJobList()
+      }
+    }
+
+    function buttonZQDelete() {
+      for (let j = 0; j < tableJobData.value.length; j++) {
+        if (tableJobData.value[j].uuid === tableJobClicked.value) {
+          tableJobData.value.splice(j, 1)
+          break
+        }
+      }
+      const tmpJobName = zqFlag.value + 'job'
+      setJob(tmpJobName, tableJobData.value)
+      showJobList()
+    }
+
+    function jobTableClick(row) { tableJobClicked.value = row.uuid }
+
+    onMounted(() => {
+      updateTime()
+      timeInterval = setInterval(updateTime, 1000)
+      showInTree()
+    })
+
+    onUnmounted(() => {
+      if (timeInterval) clearInterval(timeInterval)
+    })
+
+    return {
+      aboutVisible,
+      squareUrl, headTitle, currentTime, taskCount,
+      dtSelecter, radioJobTag, textJobInfo,
+      treeJobData, defaultProps, treeJob,
+      dialogFormVisible, dialogTitle,
+      dialogTimeSelectData, dialogTimeSelectValue,
+      zqtextJobInfo, tableJobData,
+      Edit, CircleCheck, Refresh, Delete,
+      handerDate, buttonAdd, buttonDone,
+      treeCheckedChanged,
+      buttonDay, buttonWeek, buttonMonth,
+      zqTimeChanged, buttonZQAdd, buttonZQDelete, jobTableClick
+    }
+  }
+})
+
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  app.component(key, component)
+}
+app.use(ElementPlus)
+app.mount('#app')
+</script>
+
+<style>
+  /* ========== CSS Variables ========== */
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-secondary: #0d1321;
+    --bg-panel: rgba(13, 25, 50, 0.85);
+    --bg-panel-hover: rgba(20, 40, 70, 0.9);
+    --border-glow: #00e5ff;
+    --border-dim: rgba(0, 229, 255, 0.15);
+    --accent-cyan: #00e5ff;
+    --accent-blue: #2979ff;
+    --accent-green: #00e676;
+    --accent-orange: #ff9100;
+    --accent-red: #ff1744;
+    --accent-purple: #d500f9;
+    --text-primary: #e0f7fa;
+    --text-secondary: rgba(178, 235, 242, 0.7);
+    --text-dim: rgba(178, 235, 242, 0.4);
+    --glow-cyan: 0 0 10px rgba(0, 229, 255, 0.3), 0 0 30px rgba(0, 229, 255, 0.1);
+    --glow-green: 0 0 10px rgba(0, 230, 118, 0.3), 0 0 30px rgba(0, 230, 118, 0.1);
+    --font-display: 'Orbitron', monospace, sans-serif;
+    --font-body: 'Rajdhani', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+
+  /* ========== Reset & Base ========== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    overflow: hidden;
+  }
+
+  #app { height: 100%; position: relative; z-index: 1; }
+
+  /* ========== Animated Background ========== */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 20s linear infinite;
+  }
+  @keyframes gridMove {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(40px, 40px); }
+  }
+
+  .scan-line {
+    position: fixed; left: 0; right: 0; height: 2px; z-index: 0;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    opacity: 0.08;
+    animation: scanDown 8s linear infinite;
+  }
+  @keyframes scanDown {
+    0% { top: -2px; }
+    100% { top: 100%; }
+  }
+
+  /* ========== Layout ========== */
+  .cockpit-container {
+    height: 100%;
+    flex-direction: column;
+  }
+
+  .cockpit-header {
+    height: 60px !important;
+    background: linear-gradient(180deg, rgba(0, 30, 60, 0.95), rgba(10, 14, 23, 0.98));
+    border-bottom: 1px solid var(--border-dim);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px !important;
+    position: relative;
+  }
+  .cockpit-header::after {
+    content: '';
+    position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    opacity: 0.6;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .hud-diamond {
+    width: 12px; height: 12px;
+    background: var(--accent-cyan);
+    transform: rotate(45deg);
+    box-shadow: var(--glow-cyan);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .header-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--accent-cyan);
+    letter-spacing: 3px;
+    text-shadow: var(--glow-cyan);
+  }
+  .header-divider {
+    color: var(--text-dim);
+    font-size: 20px;
+  }
+  .header-subtitle {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    font-weight: 500;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hud-time {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+    text-shadow: var(--glow-cyan);
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: var(--glow-green);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .status-text {
+    font-family: var(--font-display);
+    font-size: 11px;
+    color: var(--accent-green);
+    letter-spacing: 2px;
+  }
+
+  .main-body { flex: 1; overflow: hidden; }
+
+  /* ========== Aside Panel ========== */
+  .cockpit-aside {
+    background: var(--bg-secondary) !important;
+    border-right: 1px solid var(--border-dim);
+    overflow-y: auto;
+    overflow-x: hidden;
+    line-height: normal !important;
+  }
+
+  .panel-wrapper {
+    padding: 16px;
+    height: 100%;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+  }
+  .panel-icon {
+    font-size: 8px;
+    color: var(--accent-cyan);
+    text-shadow: var(--glow-cyan);
+  }
+  .panel-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border-dim), transparent);
+  }
+  .task-count {
+    font-size: 11px;
+    color: var(--accent-green);
+    letter-spacing: 1px;
+  }
+
+  /* ========== Form Fields ========== */
+  .field-label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .elform {
+    margin: 0;
+    text-align: left;
+  }
+
+  .el-form-item {
+    margin-bottom: 14px;
+  }
+
+  /* ========== Radio Buttons (Priority) ========== */
+  .cyber-radio-group {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 6px !important;
+  }
+
+  .cyber-radio.el-radio {
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    background: rgba(0, 30, 60, 0.6) !important;
+    border: 1px solid var(--border-dim) !important;
+    border-radius: 4px !important;
+    color: var(--text-secondary) !important;
+    font-family: var(--font-body) !important;
+    font-size: 13px !important;
+    transition: all 0.3s ease;
+    padding: 6px 12px !important;
+    height: auto !important;
+    width: calc(50% - 3px);
+  }
+  .cyber-radio.el-radio.is-bordered + .cyber-radio.el-radio.is-bordered {
+    margin-left: 0 !important;
+  }
+  .cyber-radio.el-radio:hover {
+    border-color: var(--accent-cyan) !important;
+    background: rgba(0, 50, 80, 0.6) !important;
+  }
+  .cyber-radio.el-radio.is-checked {
+    border-color: var(--accent-cyan) !important;
+    background: rgba(0, 229, 255, 0.08) !important;
+    box-shadow: inset 0 0 15px rgba(0, 229, 255, 0.05), var(--glow-cyan);
+  }
+  .cyber-radio .el-radio__input .el-radio__inner {
+    display: none !important;
+  }
+  .cyber-radio .el-radio__label {
+    padding-left: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .priority-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .priority-dot.critical { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+  .priority-dot.high { background: var(--accent-orange); box-shadow: 0 0 6px var(--accent-orange); }
+  .priority-dot.medium { background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
+  .priority-dot.low { background: var(--text-dim); box-shadow: 0 0 6px var(--text-dim); }
+
+  /* ========== Custom Buttons ========== */
+  .btn-group-main {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .cyber-btn {
+    position: relative;
+    padding: 10px 24px;
+    border: 1px solid;
+    border-radius: 2px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    flex: 1;
+    justify-content: center;
+  }
+  .cyber-btn::before {
+    content: '';
+    position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    transition: left 0.5s ease;
+  }
+  .cyber-btn:hover::before { left: 100%; }
+
+  .btn-add {
+    background: rgba(0, 229, 255, 0.1);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+  .btn-add:hover {
+    background: rgba(0, 229, 255, 0.2);
+    box-shadow: var(--glow-cyan);
+    transform: translateY(-1px);
+  }
+
+  .btn-done {
+    background: rgba(0, 230, 118, 0.1);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+  }
+  .btn-done:hover {
+    background: rgba(0, 230, 118, 0.2);
+    box-shadow: var(--glow-green);
+    transform: translateY(-1px);
+  }
+
+  .btn-delete {
+    background: rgba(255, 23, 68, 0.1);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+  }
+  .btn-delete:hover {
+    background: rgba(255, 23, 68, 0.2);
+    box-shadow: 0 0 10px rgba(255, 23, 68, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn-sm { padding: 8px 16px; font-size: 13px; flex: none; }
+
+  .btn-icon { font-size: 16px; font-weight: 700; }
+
+  /* Cycle buttons */
+  .btn-group-cycle {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .cyber-btn-sm {
+    flex: 1;
+    padding: 8px 0;
+    border: 1px solid var(--border-dim);
+    border-radius: 2px;
+    background: rgba(41, 121, 255, 0.06);
+    color: var(--accent-blue);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .cyber-btn-sm:hover {
+    border-color: var(--accent-blue);
+    background: rgba(41, 121, 255, 0.15);
+    box-shadow: 0 0 10px rgba(41, 121, 255, 0.2);
+    transform: translateY(-1px);
+  }
+  .cycle-icon { font-size: 14px; }
+
+  /* ========== Main Content ========== */
+  .cockpit-main {
+    background: var(--bg-primary) !important;
+    line-height: normal !important;
+    overflow-y: auto;
+    padding: 16px !important;
+  }
+
+  .tree-wrapper {
+    background: rgba(13, 19, 33, 0.5);
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    padding: 12px;
+    min-height: calc(100% - 40px);
+  }
+
+  /* ========== Tree Override ========== */
+  .el-tree {
+    background: transparent !important;
+    color: var(--text-primary) !important;
+    --el-tree-node-hover-bg-color: rgba(0, 229, 255, 0.06);
+  }
+  .el-tree-node__content {
+    height: 36px !important;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+  }
+  .el-tree-node__content:hover {
+    background: rgba(0, 229, 255, 0.06) !important;
+  }
+  .el-tree-node.is-current > .el-tree-node__content {
+    background: rgba(0, 229, 255, 0.1) !important;
+    border-left: 2px solid var(--accent-cyan);
+  }
+  .el-tree-node__expand-icon {
+    color: var(--accent-cyan) !important;
+    font-size: 14px;
+  }
+  .el-tree-node__expand-icon.is-leaf {
+    color: transparent !important;
+  }
+
+  .custom-tree-node {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    width: 100%;
+  }
+  .custom-tree-node.is-category {
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--accent-cyan);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .category-icon {
+    font-size: 10px;
+    color: var(--accent-cyan);
+  }
+  .task-bullet {
+    font-size: 6px;
+    color: var(--accent-green);
+  }
+  .node-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .child-count {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  /* ========== Footer ========== */
+  .cockpit-footer {
+    height: 40px !important;
+    background: var(--bg-secondary) !important;
+    border-top: 1px solid var(--border-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    line-height: normal !important;
+  }
+  .footer-line {
+    width: 40px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-dim), transparent);
+  }
+  .footer-link.el-link {
+    font-family: var(--font-display) !important;
+    font-size: 10px !important;
+    color: var(--accent-cyan) !important;
+    letter-spacing: 1px;
+  }
+
+  /* ========== Element Plus Dark Overrides ========== */
+
+  /* Date Picker */
+  .el-date-editor {
+    --el-fill-color-blank: rgba(0, 30, 60, 0.6) !important;
+    width: 100% !important;
+  }
+  .el-input__wrapper {
+    background: rgba(0, 30, 60, 0.6) !important;
+    border: 1px solid var(--border-dim) !important;
+    box-shadow: none !important;
+    border-radius: 2px !important;
+    transition: border-color 0.3s ease;
+  }
+  .el-input__wrapper:hover,
+  .el-input__wrapper.is-focus {
+    border-color: var(--accent-cyan) !important;
+    box-shadow: var(--glow-cyan) !important;
+  }
+  .el-input__inner {
+    color: var(--text-primary) !important;
+    font-family: var(--font-body) !important;
+  }
+  .el-input__prefix .el-icon,
+  .el-input__suffix .el-icon {
+    color: var(--accent-cyan) !important;
+  }
+
+  /* Textarea */
+  .el-textarea__inner {
+    background: rgba(0, 30, 60, 0.6) !important;
+    border: 1px solid var(--border-dim) !important;
+    border-radius: 2px !important;
+    color: var(--text-primary) !important;
+    font-family: var(--font-body) !important;
+    resize: none;
+    transition: border-color 0.3s ease;
+  }
+  .el-textarea__inner:hover,
+  .el-textarea__inner:focus {
+    border-color: var(--accent-cyan) !important;
+    box-shadow: var(--glow-cyan) !important;
+  }
+  .el-input__count {
+    background: transparent !important;
+    color: var(--text-dim) !important;
+  }
+
+  /* Select */
+  .el-select {
+    flex: 1;
+  }
+
+  /* ========== Dialog ========== */
+  .cyber-dialog .el-dialog,
+  .el-overlay-dialog .el-dialog {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-dim) !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.1), 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+    --el-dialog-bg-color: var(--bg-secondary) !important;
+    --el-dialog-border-radius: 4px !important;
+    --el-bg-color: var(--bg-secondary) !important;
+    --el-border-color-lighter: var(--border-dim) !important;
+    --el-fill-color-blank: var(--bg-secondary) !important;
+  }
+  .el-dialog {
+    --el-dialog-bg-color: var(--bg-secondary) !important;
+    --el-dialog-border-radius: 4px !important;
+  }
+  .cyber-dialog .el-dialog__header {
+    border-bottom: 1px solid var(--border-dim);
+    padding: 16px 20px;
+    background: var(--bg-secondary) !important;
+  }
+  .cyber-dialog .el-dialog__title {
+    font-family: var(--font-display) !important;
+    font-size: 14px !important;
+    color: var(--accent-cyan) !important;
+    letter-spacing: 2px;
+  }
+  .cyber-dialog .el-dialog__headerbtn .el-dialog__close {
+    color: var(--text-dim);
+  }
+  .cyber-dialog .el-dialog__headerbtn .el-dialog__close:hover {
+    color: var(--accent-cyan);
+  }
+  .cyber-dialog .el-dialog__body {
+    padding: 20px;
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+  }
+  .el-overlay { backdrop-filter: blur(4px); }
+
+  .dialog-controls {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    align-items: center;
+  }
+
+  /* ========== Table ========== */
+  .el-table {
+    --el-table-bg-color: transparent !important;
+    --el-table-tr-bg-color: transparent !important;
+    --el-table-header-bg-color: rgba(0, 30, 60, 0.4) !important;
+    --el-table-row-hover-bg-color: rgba(0, 229, 255, 0.06) !important;
+    --el-table-border-color: var(--border-dim) !important;
+    --el-table-text-color: var(--text-primary) !important;
+    --el-table-header-text-color: var(--accent-cyan) !important;
+    --el-fill-color-lighter: rgba(0, 30, 60, 0.3) !important;
+    font-family: var(--font-body) !important;
+  }
+  .el-table th.el-table__cell {
+    font-family: var(--font-display) !important;
+    font-size: 11px !important;
+    letter-spacing: 1px;
+  }
+  .el-table tr {
+    cursor: pointer;
+  }
+
+  /* ========== Scrollbar ========== */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 229, 255, 0.2);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 229, 255, 0.4);
+  }
+
+  /* ========== About Button ========== */
+  .about-btn {
+    padding: 4px 14px;
+    border: 1px solid var(--border-dim);
+    border-radius: 2px;
+    background: rgba(0, 30, 60, 0.4);
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 8px;
+  }
+  .about-btn:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: var(--glow-cyan);
+  }
+  .about-icon { font-size: 14px; }
+
+  /* ========== About Dialog Content ========== */
+  .about-content {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+  }
+  .about-section {
+    margin-bottom: 20px;
+  }
+  .about-heading {
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    text-shadow: var(--glow-cyan);
+  }
+  .about-sub-heading {
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+  .about-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .about-list {
+    list-style: none;
+    padding: 0;
+  }
+  .about-list li {
+    padding: 4px 0 4px 16px;
+    position: relative;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .about-list li::before {
+    content: '>';
+    position: absolute;
+    left: 0;
+    color: var(--accent-cyan);
+    font-family: var(--font-display);
+    font-size: 11px;
+  }
+  .about-highlight {
+    color: var(--accent-cyan);
+    font-weight: 600;
+  }
+  .about-offline {
+    background: rgba(0, 230, 118, 0.05);
+    border: 1px solid rgba(0, 230, 118, 0.2);
+    border-radius: 4px;
+    padding: 16px;
+  }
+  .about-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 230, 118, 0.1);
+    border-radius: 2px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent-green);
+  }
+  .about-badge-icon { font-size: 16px; }
+  .about-offline .about-list li strong {
+    color: var(--accent-green);
+  }
+
+  /* ========== Popper / Dropdown Dark ========== */
+  .el-popper.is-light {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-dim) !important;
+  }
+  .el-popper.is-light .el-popper__arrow::before {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border-dim) !important;
+  }
+  .el-select-dropdown__item {
+    color: var(--text-primary) !important;
+    font-family: var(--font-body) !important;
+  }
+  .el-select-dropdown__item.hover,
+  .el-select-dropdown__item:hover {
+    background: rgba(0, 229, 255, 0.08) !important;
+  }
+  .el-select-dropdown__item.is-selected {
+    color: var(--accent-cyan) !important;
+  }
+
+  /* Date picker panel */
+  .el-date-picker,
+  .el-picker-panel {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-dim) !important;
+    color: var(--text-primary) !important;
+  }
+  .el-date-picker__header-label,
+  .el-date-picker .el-picker-panel__icon-btn {
+    color: var(--text-primary) !important;
+  }
+  .el-date-table td.current:not(.disabled) .el-date-table-cell__text {
+    background: var(--accent-cyan) !important;
+  }
+  .el-date-table td .el-date-table-cell__text {
+    color: var(--text-primary) !important;
+  }
+  .el-date-table td.disabled .el-date-table-cell__text {
+    color: var(--text-dim) !important;
+  }
+</style>
+</body>
+</html>
