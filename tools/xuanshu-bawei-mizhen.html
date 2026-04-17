@@ -440,9 +440,9 @@ function getLevelConfig(major, minor) {
   const baseGaps = baseLayers - 1;
   const maxSubdiv = Math.floor(MAX_TOTAL_RINGS / baseGaps);
 
-  // Subdivision: ramps up in the second half of progress
+  // Subdivision: only kicks in for major >= 3 (major 1-2 have too few levels for smooth ramp)
   let subdivision = 1;
-  if (maxSubdiv > 1) {
+  if (major >= 3 && maxSubdiv > 1) {
     const subdivProgress = Math.max(0, (progress - 0.35) / 0.65);
     subdivision = 1 + Math.floor(subdivProgress * (maxSubdiv - 1));
     subdivision = Math.min(subdivision, maxSubdiv);
@@ -660,64 +660,93 @@ function generateMaze() {
     }
   }
 
-  // === Connectivity verification ===
-  // BFS from center to ensure all cells (including an exit) are reachable
+  // === Robust connectivity verification & repair ===
+  // Iterative BFS: open walls between reachable/unreachable cells until fully connected
   const totalC = 1 + NUM_GAPS * 8;
   const outsideC = totalC;
-  const adj = Array.from({ length: totalC + 1 }, () => []);
-  // Build adjacency from current wall state
-  for (let s = 0; s < 8; s++) {
-    if (!walls[0][s]) { adj[0].push(cellId(0, s)); adj[cellId(0, s)].push(0); }
-  }
-  for (let l = 1; l < LAYERS - 1; l++) {
+
+  function bfsFromCenter() {
+    const adj = Array.from({ length: totalC + 1 }, () => []);
     for (let s = 0; s < 8; s++) {
-      if (!walls[l][s]) { adj[cellId(l-1, s)].push(cellId(l, s)); adj[cellId(l, s)].push(cellId(l-1, s)); }
+      if (!walls[0][s]) { adj[0].push(cellId(0, s)); adj[cellId(0, s)].push(0); }
     }
-  }
-  for (let s = 0; s < 8; s++) {
-    if (!walls[LAYERS-1][s]) { adj[cellId(NUM_GAPS-1, s)].push(outsideC); adj[outsideC].push(cellId(NUM_GAPS-1, s)); }
-  }
-  for (let g = 0; g < NUM_GAPS; g++) {
-    for (let v = 0; v < 8; v++) {
-      if (!radialWalls[g][v]) {
-        const a = cellId(g, (v-1+8)%8), b = cellId(g, v);
-        adj[a].push(b); adj[b].push(a);
+    for (let l = 1; l < LAYERS - 1; l++) {
+      for (let s = 0; s < 8; s++) {
+        if (!walls[l][s]) { adj[cellId(l-1, s)].push(cellId(l, s)); adj[cellId(l, s)].push(cellId(l-1, s)); }
       }
     }
-  }
-  // BFS from center (cell 0)
-  const visited = new Uint8Array(totalC + 1);
-  const queue = [0];
-  visited[0] = 1;
-  let head = 0;
-  while (head < queue.length) {
-    const cur = queue[head++];
-    for (const nb of adj[cur]) {
-      if (!visited[nb]) { visited[nb] = 1; queue.push(nb); }
+    for (let s = 0; s < 8; s++) {
+      if (!walls[LAYERS-1][s]) { adj[cellId(NUM_GAPS-1, s)].push(outsideC); adj[outsideC].push(cellId(NUM_GAPS-1, s)); }
     }
-  }
-  // Fix 1: center must connect to at least one gap-0 cell
-  if (queue.length <= 1) {
-    const s = Math.floor(Math.random() * 8);
-    walls[0][s] = false;
-  }
-  // Fix 2: if outside not reachable from center, force open a path layer by layer
-  if (!visited[outsideC]) {
-    for (let l = 0; l < LAYERS; l++) {
-      let hasOpen = false;
-      for (let s = 0; s < 8; s++) { if (!walls[l][s]) { hasOpen = true; break; } }
-      if (!hasOpen) {
-        walls[l][Math.floor(Math.random() * 8)] = false;
-      }
-    }
-    // Ensure at least one radial connection per gap
     for (let g = 0; g < NUM_GAPS; g++) {
-      let hasOpen = false;
-      for (let v = 0; v < 8; v++) { if (!radialWalls[g][v]) { hasOpen = true; break; } }
-      if (!hasOpen) {
-        radialWalls[g][Math.floor(Math.random() * 8)] = false;
+      for (let v = 0; v < 8; v++) {
+        if (!radialWalls[g][v]) {
+          const a = cellId(g, (v-1+8)%8), b = cellId(g, v);
+          adj[a].push(b); adj[b].push(a);
+        }
       }
     }
+    const visited = new Uint8Array(totalC + 1);
+    const queue = [0];
+    visited[0] = 1;
+    let head = 0;
+    while (head < queue.length) {
+      const cur = queue[head++];
+      for (const nb of adj[cur]) {
+        if (!visited[nb]) { visited[nb] = 1; queue.push(nb); }
+      }
+    }
+    return visited;
+  }
+
+  // Collect all walls as {cellA, cellB, open(wall)} pairs for repair
+  function findBorderWall(visited) {
+    // Find a closed wall where one side is visited and the other is not, then open it
+    // Check octagonal walls (inner → layer 0)
+    for (let s = 0; s < 8; s++) {
+      if (walls[0][s]) {
+        const a = 0, b = cellId(0, s);
+        if (visited[a] !== visited[b]) { walls[0][s] = false; return true; }
+      }
+    }
+    // Check octagonal walls (middle layers)
+    for (let l = 1; l < LAYERS - 1; l++) {
+      for (let s = 0; s < 8; s++) {
+        if (walls[l][s]) {
+          const a = cellId(l - 1, s), b = cellId(l, s);
+          if (visited[a] !== visited[b]) { walls[l][s] = false; return true; }
+        }
+      }
+    }
+    // Check radial walls
+    for (let g = 0; g < NUM_GAPS; g++) {
+      for (let v = 0; v < 8; v++) {
+        if (radialWalls[g][v]) {
+          const a = cellId(g, (v - 1 + 8) % 8), b = cellId(g, v);
+          if (visited[a] !== visited[b]) { radialWalls[g][v] = false; return true; }
+        }
+      }
+    }
+    // Check outer walls (to outside)
+    for (let s = 0; s < 8; s++) {
+      if (walls[LAYERS - 1][s]) {
+        const a = cellId(NUM_GAPS - 1, s), b = outsideC;
+        if (visited[a] !== visited[b]) { walls[LAYERS - 1][s] = false; return true; }
+      }
+    }
+    return false;
+  }
+
+  // Repair loop: keep opening border walls until everything is reachable from center
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const visited = bfsFromCenter();
+    // Check if all internal cells + outside are reachable
+    let allOk = true;
+    for (let i = 0; i <= totalC; i++) {
+      if (!visited[i]) { allOk = false; break; }
+    }
+    if (allOk) break;
+    if (!findBorderWall(visited)) break; // no border wall found (shouldn't happen)
   }
 }
 
