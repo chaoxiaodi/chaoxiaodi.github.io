@@ -146,6 +146,18 @@
     cursor: pointer;
   }
   #reset-btn:hover { background: rgba(255,80,80,0.3); }
+  #debug-skip-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 6px;
+    font-size: 12px;
+    background: rgba(255,200,0,0.15);
+    border: 1px solid rgba(255,200,0,0.3);
+    border-radius: 6px;
+    color: #ffc832;
+    cursor: pointer;
+  }
+  #debug-skip-btn:hover { background: rgba(255,200,0,0.3); }
   /* Win modal */
   #win-msg {
     display: none;
@@ -383,6 +395,7 @@
       </div>
       <button id="lb-btn" onclick="showLeaderboard()">排行榜</button>
       <button id="reset-btn" onclick="resetProgress()">重置进度</button>
+      <button id="debug-skip-btn" onclick="debugSkip()" style="display:none">⏭ 跳过本关 (Debug)</button>
     </div>
   </div>
 </div>
@@ -430,35 +443,21 @@ const STORAGE_KEY = 'octagon-maze-records';
 const LB_STORAGE_KEY = 'octagon-maze-leaderboard';
 const MAP_CACHE_KEY = 'octagon-maze-maps';
 
-// Max total rings limited by canvas: ~250px available / 15px min corridor = 16
-const MAX_TOTAL_RINGS = 16;
-
 function getLevelConfig(major, minor) {
-  const baseLayers = BASE_LAYERS[major - 1];
+  const baseLayers = BASE_LAYERS[major - 1];       // 层数严格对应大关: 4,5,6,7,8,9
   const totalMinor = MINOR_COUNTS[major - 1];
   const progress = (minor - 1) / Math.max(totalMinor - 1, 1); // 0.0 ~ 1.0
 
-  const baseGaps = baseLayers - 1;
-  const maxSubdiv = Math.floor(MAX_TOTAL_RINGS / baseGaps);
+  // Extra open rate: 前期多捷径(易) → 后期无捷径(难)
+  const extraOpenRate = Math.max(0, 0.30 * (1 - progress * 1.2));
 
-  // Subdivision: only kicks in for major >= 3 (major 1-2 have too few levels for smooth ramp)
-  let subdivision = 1;
-  if (major >= 3 && maxSubdiv > 1) {
-    const subdivProgress = Math.max(0, (progress - 0.35) / 0.65);
-    subdivision = 1 + Math.floor(subdivProgress * (maxSubdiv - 1));
-    subdivision = Math.min(subdivision, maxSubdiv);
-  }
-
-  // Extra open rate: from 0.25 (easy) to 0 (hard)
-  const extraOpenRate = Math.max(0, 0.25 * (1 - progress * 1.1));
-
-  // Exit count: 3 early, 2 mid, 1 late
+  // Exit count: 前期3出口(易) → 中期2 → 后期1(难)
   let exitCount;
   if (progress < 0.25) exitCount = 3;
   else if (progress < 0.6) exitCount = 2;
   else exitCount = 1;
 
-  return { baseLayers, subdivision, extraOpenRate, exitCount };
+  return { baseLayers, extraOpenRate, exitCount };
 }
 
 // ========== STORAGE ==========
@@ -534,6 +533,17 @@ function resetProgress() {
   saveMapCache(mapCache);
   currentMajor = 1; currentMinor = 1;
   startLevel(1, 1);
+}
+
+function debugSkip() {
+  won = true;
+  timerRunning = false;
+  let maj = currentMajor, min = currentMinor;
+  const minorCount = MINOR_COUNTS[maj - 1];
+  min++;
+  if (min > minorCount) { min = 1; maj++; }
+  if (maj > MAX_MAJOR) { alert('已是最后一关'); return; }
+  startLevel(maj, min);
 }
 
 // ========== CANVAS ==========
@@ -1149,10 +1159,8 @@ function toggleGroup(maj) {
 // ========== LEVEL MANAGEMENT ==========
 function setupLevel(major, minor) {
   const config = getLevelConfig(major, minor);
-  const baseGaps = config.baseLayers - 1;
 
-  // Total rings = 1 + baseGaps * subdivision
-  LAYERS = 1 + baseGaps * config.subdivision;
+  LAYERS = config.baseLayers;   // 严格使用大关对应层数
   NUM_GAPS = LAYERS - 1;
   extraOpenRate = config.extraOpenRate;
   levelExitCount = config.exitCount;
