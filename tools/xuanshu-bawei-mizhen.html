@@ -428,6 +428,7 @@ const MINOR_COUNTS = [4, 6, 10, 20, 50, 100]; // sub-levels per major
 const BASE_LAYERS = [4, 5, 6, 7, 8, 9];       // octagon layers per major
 const STORAGE_KEY = 'octagon-maze-records';
 const LB_STORAGE_KEY = 'octagon-maze-leaderboard';
+const MAP_CACHE_KEY = 'octagon-maze-maps';
 
 // Max total rings limited by canvas: ~250px available / 15px min corridor = 16
 const MAX_TOTAL_RINGS = 16;
@@ -474,6 +475,45 @@ function saveToDisk(data) {
 
 let saveData = loadSave();
 
+// ========== MAP CACHE (lazy: generate once, reuse forever) ==========
+function loadMapCache() {
+  try {
+    const raw = localStorage.getItem(MAP_CACHE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return {};
+}
+function saveMapCache(cache) {
+  try { localStorage.setItem(MAP_CACHE_KEY, JSON.stringify(cache)); } catch (e) {}
+}
+// Encode walls/radialWalls as compact strings (1 char per bool: '1'/'0')
+function encodeWalls(w, rw) {
+  let s = '';
+  for (let l = 0; l < w.length; l++)
+    for (let i = 0; i < w[l].length; i++) s += w[l][i] ? '1' : '0';
+  s += '|';
+  for (let g = 0; g < rw.length; g++)
+    for (let i = 0; i < rw[g].length; i++) s += rw[g][i] ? '1' : '0';
+  return s;
+}
+function decodeWalls(s, layers) {
+  const parts = s.split('|');
+  const w = [], rw = [];
+  let idx = 0;
+  for (let l = 0; l < layers; l++) {
+    w[l] = [];
+    for (let i = 0; i < 8; i++) w[l][i] = parts[0][idx++] === '1';
+  }
+  idx = 0;
+  const numGaps = layers - 1;
+  for (let g = 0; g < numGaps; g++) {
+    rw[g] = [];
+    for (let i = 0; i < 8; i++) rw[g][i] = parts[1][idx++] === '1';
+  }
+  return { walls: w, radialWalls: rw };
+}
+let mapCache = loadMapCache();
+
 function saveRecord(major, minor, time) {
   const key = major + '-' + minor;
   const prev = saveData.records[key];
@@ -490,6 +530,8 @@ function resetProgress() {
   if (!confirm('确定要重置所有进度吗？')) return;
   saveData = { records: {}, currentLevel: [1, 1] };
   saveToDisk(saveData);
+  mapCache = {};
+  saveMapCache(mapCache);
   currentMajor = 1; currentMinor = 1;
   startLevel(1, 1);
 }
@@ -1129,7 +1171,19 @@ function startLevel(major, minor) {
   saveCurrentLevel(major, minor);
 
   setupLevel(major, minor);
-  generateMaze();
+
+  // Try loading cached map; generate & cache if not found
+  const mapKey = major + '-' + minor;
+  const cached = mapCache[mapKey];
+  if (cached) {
+    const decoded = decodeWalls(cached, LAYERS);
+    walls = decoded.walls;
+    radialWalls = decoded.radialWalls;
+  } else {
+    generateMaze();
+    mapCache[mapKey] = encodeWalls(walls, radialWalls);
+    saveMapCache(mapCache);
+  }
   cacheWallSegments();
 
   player.x = CX; player.y = CY;
