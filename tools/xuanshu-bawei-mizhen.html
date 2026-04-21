@@ -202,6 +202,55 @@
     cursor: pointer;
   }
   #lb-btn:hover { background: rgba(0,212,255,0.25); }
+  #fog-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 6px;
+    font-size: 12px;
+    background: rgba(255,200,0,0.12);
+    border: 1px solid rgba(255,200,0,0.3);
+    border-radius: 6px;
+    color: #ffc832;
+    cursor: pointer;
+  }
+  #fog-btn:hover { background: rgba(255,200,0,0.25); }
+  #endless-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    background: rgba(0,255,136,0.12);
+    border: 1px solid rgba(0,255,136,0.4);
+    border-radius: 6px;
+    color: #00ff88;
+    cursor: pointer;
+  }
+  #endless-btn:hover { background: rgba(0,255,136,0.25); }
+  #exit-endless-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 6px;
+    font-size: 12px;
+    background: rgba(0,212,255,0.12);
+    border: 1px solid #00d4ff44;
+    border-radius: 6px;
+    color: #00d4ff;
+    cursor: pointer;
+  }
+  #exit-endless-btn:hover { background: rgba(0,212,255,0.25); }
+  #reset-endless-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 6px;
+    font-size: 12px;
+    background: rgba(255,80,80,0.15);
+    border: 1px solid rgba(255,80,80,0.3);
+    border-radius: 6px;
+    color: #ff6666;
+    cursor: pointer;
+  }
+  #reset-endless-btn:hover { background: rgba(255,80,80,0.3); }
   /* Overlay backdrop */
   .overlay {
     display: none;
@@ -393,8 +442,12 @@
         <span>总用时</span>
         <span class="time" id="total-time-val">--</span>
       </div>
+      <button id="fog-btn" onclick="toggleFog()">开启迷雾</button>
       <button id="lb-btn" onclick="showLeaderboard()">排行榜</button>
+      <button id="endless-btn" onclick="enterEndlessMode()" style="display:none">无限模式</button>
+      <button id="exit-endless-btn" onclick="exitEndlessMode()" style="display:none">返回主线</button>
       <button id="reset-btn" onclick="resetProgress()">重置进度</button>
+      <button id="reset-endless-btn" onclick="resetEndlessProgress()" style="display:none">重置无限模式</button>
       <button id="debug-skip-btn" onclick="debugSkip()" style="display:none">⏭ 跳过本关 (Debug)</button>
     </div>
   </div>
@@ -442,6 +495,29 @@ const BASE_LAYERS = [4, 5, 6, 7, 8, 9];       // octagon layers per major
 const STORAGE_KEY = 'octagon-maze-records';
 const LB_STORAGE_KEY = 'octagon-maze-leaderboard';
 const MAP_CACHE_KEY = 'octagon-maze-maps';
+const ENDLESS_STORAGE_KEY = 'octagon-maze-endless';
+const MAX_ENDLESS_LAYERS = 12;
+
+// ========== ENDLESS MODE ==========
+let gameMode = 'story'; // 'story' | 'endless'
+let endlessN = 0;
+let endlessSave = null;
+let endlessFlavor = null;
+let endlessShuffleBag = [];
+let endlessBagIndex = 0;
+
+// 7 种难度风味: [pathWeight, branchWeight, deadEndWeight]
+const FLAVOR_LIST = [
+  { name: '远征', weights: [0.8, 0.1, 0.1] },
+  { name: '迷踪', weights: [0.2, 0.7, 0.1] },
+  { name: '陷阱', weights: [0.2, 0.1, 0.7] },
+  { name: '炼狱', weights: [0.4, 0.3, 0.3] },
+  { name: '迷远', weights: [0.4, 0.5, 0.1] },
+  { name: '苦远', weights: [0.4, 0.1, 0.5] },
+  { name: '绝境', weights: [0.1, 0.45, 0.45] },
+];
+const INTRO_FLAVORS = [0, 1, 2, 3, 4, 5, 6];
+const INTRO_OPEN_RATES = [0.25, 0.20, 0.15, 0.12, 0.08, 0.05, 0.02];
 
 function getLevelConfig(major, minor) {
   const baseLayers = BASE_LAYERS[major - 1];       // 层数严格对应大关: 4,5,6,7,8,9
@@ -473,6 +549,44 @@ function saveToDisk(data) {
 }
 
 let saveData = loadSave();
+
+// ========== ENDLESS SAVE ==========
+function loadEndlessSave() {
+  try {
+    const raw = localStorage.getItem(ENDLESS_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { currentN: 1, records: {}, bestN: 0, shuffleBag: [], bagIndex: 0 };
+}
+function saveEndlessToDisk() {
+  if (!endlessSave) return;
+  endlessSave.shuffleBag = endlessShuffleBag;
+  endlessSave.bagIndex = endlessBagIndex;
+  try { localStorage.setItem(ENDLESS_STORAGE_KEY, JSON.stringify(endlessSave)); } catch (e) {}
+}
+function saveEndlessRecord(n, time) {
+  if (!endlessSave) return;
+  const key = '' + n;
+  const prev = endlessSave.records[key];
+  if (prev === undefined || time < prev) {
+    endlessSave.records[key] = Math.round(time * 100) / 100;
+  }
+  if (n > endlessSave.bestN) endlessSave.bestN = n;
+  saveEndlessToDisk();
+}
+function resetEndlessProgress() {
+  if (!confirm('确定要重置无限模式进度吗？')) return;
+  endlessSave = { currentN: 1, records: {}, bestN: 0, shuffleBag: [], bagIndex: 0 };
+  endlessShuffleBag = [];
+  endlessBagIndex = 0;
+  endlessN = 1;
+  // Clear endless map cache
+  const keys = Object.keys(mapCache);
+  for (const k of keys) { if (k.startsWith('e-')) delete mapCache[k]; }
+  saveMapCache(mapCache);
+  saveEndlessToDisk();
+  startEndlessLevel(1);
+}
 
 // ========== MAP CACHE (lazy: generate once, reuse forever) ==========
 function loadMapCache() {
@@ -802,6 +916,259 @@ function generateMaze() {
   }
 }
 
+// ========== DIFFICULTY SCORING ==========
+function buildAdjList() {
+  const totalC = 1 + NUM_GAPS * 8;
+  const outsideC = totalC;
+  const adj = Array.from({ length: totalC + 1 }, () => []);
+  for (let s = 0; s < 8; s++) {
+    if (!walls[0][s]) { adj[0].push(cellId(0, s)); adj[cellId(0, s)].push(0); }
+  }
+  for (let l = 1; l < LAYERS - 1; l++) {
+    for (let s = 0; s < 8; s++) {
+      if (!walls[l][s]) { adj[cellId(l-1, s)].push(cellId(l, s)); adj[cellId(l, s)].push(cellId(l-1, s)); }
+    }
+  }
+  for (let s = 0; s < 8; s++) {
+    if (!walls[LAYERS-1][s]) { adj[cellId(NUM_GAPS-1, s)].push(outsideC); adj[outsideC].push(cellId(NUM_GAPS-1, s)); }
+  }
+  for (let g = 0; g < NUM_GAPS; g++) {
+    for (let v = 0; v < 8; v++) {
+      if (!radialWalls[g][v]) {
+        const a = cellId(g, (v-1+8)%8), b = cellId(g, v);
+        adj[a].push(b); adj[b].push(a);
+      }
+    }
+  }
+  return { adj, totalC, outsideC };
+}
+
+function bfsShortestPath() {
+  const { adj, totalC, outsideC } = buildAdjList();
+  const dist = new Int32Array(totalC + 1).fill(-1);
+  const prev = new Int32Array(totalC + 1).fill(-1);
+  dist[0] = 0;
+  const queue = [0];
+  let head = 0;
+  while (head < queue.length) {
+    const cur = queue[head++];
+    if (cur === outsideC) break;
+    for (const nb of adj[cur]) {
+      if (dist[nb] === -1) {
+        dist[nb] = dist[cur] + 1;
+        prev[nb] = cur;
+        queue.push(nb);
+      }
+    }
+  }
+  if (dist[outsideC] === -1) return { pathLen: totalC, path: [], adj };
+  // Reconstruct path
+  const path = [];
+  for (let c = outsideC; c !== -1; c = prev[c]) path.push(c);
+  path.reverse();
+  return { pathLen: dist[outsideC], path, adj };
+}
+
+function countBranchPoints(path, adj) {
+  let count = 0;
+  // Skip first (center) and last (outside) — count internal path cells with degree > 2
+  for (let i = 1; i < path.length - 1; i++) {
+    if (adj[path[i]].length > 2) count++;
+  }
+  return count;
+}
+
+function countDeadEnds(adj, totalC) {
+  let count = 0;
+  // cell 0 is center; cells 1..totalC-1 are gap cells; totalC is outside (skip outside)
+  for (let i = 0; i < totalC; i++) {
+    if (adj[i].length === 1) count++;
+  }
+  return count / Math.max(totalC, 1);
+}
+
+function scoreMaze(major) {
+  const totalC = 1 + NUM_GAPS * 8;
+  const { pathLen, path, adj } = bfsShortestPath();
+
+  // Normalize path length: ratio of actual path to total cells, scaled to 0-100
+  const pathScore = (pathLen / Math.max(totalC, 1)) * 100;
+
+  if (major <= 4) {
+    return pathScore;
+  }
+
+  const branchCount = countBranchPoints(path, adj);
+  // Normalize: branch points as ratio of path length (excluding endpoints)
+  const maxBranch = Math.max(path.length - 2, 1);
+  const branchScore = (branchCount / maxBranch) * 100;
+
+  if (major === 5) {
+    return pathScore * 0.7 + branchScore * 0.3;
+  }
+
+  // major === 6
+  const deadEndDensity = countDeadEnds(adj, totalC);
+  const deadEndScore = deadEndDensity * 100;
+  return pathScore * 0.5 + branchScore * 0.25 + deadEndScore * 0.25;
+}
+
+// ========== DIFFICULTY SEGMENT CONTROL ==========
+function getDifficultySegment(major, minor) {
+  if (major <= 2) return null;
+  const totalMinor = MINOR_COUNTS[major - 1];
+  const perSegment = totalMinor / 5;
+  return Math.min(Math.floor((minor - 1) / perSegment) + 1, 5);
+}
+
+// Difficulty score ranges per segment (0-100 scale)
+// Segments: 1=入门, 2=适应, 3=标准, 4=挑战, 5=压力
+const SEGMENT_RANGES = {
+  3: [[0, 25], [20, 45], [40, 65], [55, 80], [70, 100]],
+  4: [[0, 25], [20, 45], [40, 65], [55, 80], [70, 100]],
+  5: [[0, 25], [20, 45], [40, 65], [55, 80], [70, 100]],
+  6: [[0, 25], [20, 45], [40, 65], [55, 80], [70, 100]]
+};
+
+function generateMazeWithDifficulty(major, minor) {
+  const segment = getDifficultySegment(major, minor);
+  if (segment === null) {
+    generateMaze();
+    return;
+  }
+
+  const [targetMin, targetMax] = SEGMENT_RANGES[major][segment - 1];
+  let bestWalls = null, bestRadial = null, bestDist = Infinity;
+
+  for (let attempt = 0; attempt < 20; attempt++) {
+    generateMaze();
+    const score = scoreMaze(major);
+
+    if (score >= targetMin && score <= targetMax) {
+      console.log(`[难度] ${major}-${minor} 段${segment} | score=${score.toFixed(1)} | 命中 [${targetMin},${targetMax}] | 尝试${attempt + 1}次`);
+      return;
+    }
+
+    const dist = score < targetMin ? targetMin - score : score - targetMax;
+    if (dist < bestDist) {
+      bestDist = dist;
+      // Deep copy walls
+      bestWalls = walls.map(row => row.slice());
+      bestRadial = radialWalls.map(row => row.slice());
+    }
+  }
+
+  // Fallback: use the closest match
+  walls = bestWalls;
+  radialWalls = bestRadial;
+  const fallbackScore = scoreMaze(major);
+  console.log(`[难度] ${major}-${minor} 段${segment} | score=${fallbackScore.toFixed(1)} | 兜底(最近) [${targetMin},${targetMax}] | 偏差${bestDist.toFixed(1)}`);
+}
+
+// ========== ENDLESS MODE LOGIC ==========
+function scoreMazeWithWeights(weights) {
+  const totalC = 1 + NUM_GAPS * 8;
+  const { pathLen, path, adj } = bfsShortestPath();
+  const pathScore = (pathLen / Math.max(totalC, 1)) * 100;
+  const branchScore = (countBranchPoints(path, adj) / Math.max(path.length - 2, 1)) * 100;
+  const deadEndScore = countDeadEnds(adj, totalC) * 100;
+  return pathScore * weights[0] + branchScore * weights[1] + deadEndScore * weights[2];
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function getNextShuffleFlavor() {
+  if (endlessShuffleBag.length === 0 || endlessBagIndex >= endlessShuffleBag.length) {
+    endlessShuffleBag = shuffleArray([0, 1, 2, 3, 4, 5, 6]);
+    endlessBagIndex = 0;
+  }
+  return FLAVOR_LIST[endlessShuffleBag[endlessBagIndex++]];
+}
+
+function getEndlessConfig(n) {
+  const tier = Math.floor((n - 1) / 3);
+
+  if (tier <= 6) {
+    // 引入期: 层5-11，每层绑定一种风味
+    return {
+      layers: 5 + tier,
+      openRate: INTRO_OPEN_RATES[tier],
+      exitCount: tier < 2 ? 3 : tier < 4 ? 2 : 1,
+      flavor: FLAVOR_LIST[INTRO_FLAVORS[tier]],
+    };
+  }
+
+  // 轮换期: 层12锁定
+  // 每3关换一次风味，同一个 tier 内用同一个风味
+  // 检查是否是新 tier 的第一关（需要取新风味）
+  const tierStart = tier * 3 + 1;
+  if (n === tierStart) {
+    endlessFlavor = getNextShuffleFlavor();
+  }
+  // 如果 endlessFlavor 还没设置（比如从存档恢复），取一个
+  if (!endlessFlavor) {
+    endlessFlavor = getNextShuffleFlavor();
+  }
+
+  return {
+    layers: MAX_ENDLESS_LAYERS,
+    openRate: 0,
+    exitCount: 1,
+    flavor: endlessFlavor,
+  };
+}
+
+function setupEndlessLevel(n) {
+  const config = getEndlessConfig(n);
+  LAYERS = config.layers;
+  NUM_GAPS = LAYERS - 1;
+  extraOpenRate = config.openRate;
+  levelExitCount = config.exitCount;
+  endlessFlavor = config.flavor;
+
+  RADII = [];
+  const minR = SIZE * 0.08;
+  const maxR = SIZE * 0.46;
+  for (let i = 0; i < LAYERS; i++) {
+    RADII.push(minR + (maxR - minR) * i / (LAYERS - 1));
+  }
+}
+
+function generateEndlessMaze(n) {
+  const tier = Math.floor((n - 1) / 3);
+  const minScore = Math.min(tier * 4, 70);
+  const weights = endlessFlavor.weights;
+
+  let bestWalls = null, bestRadial = null, bestScore = -1;
+
+  for (let attempt = 0; attempt < 20; attempt++) {
+    generateMaze();
+    const score = scoreMazeWithWeights(weights);
+
+    if (score >= minScore) {
+      console.log(`[无限] 第${n}关 ${endlessFlavor.name}型 | score=${score.toFixed(1)} ≥ ${minScore} | ${LAYERS}层 | 尝试${attempt + 1}次`);
+      return;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestWalls = walls.map(row => row.slice());
+      bestRadial = radialWalls.map(row => row.slice());
+    }
+  }
+
+  // Fallback: use best attempt
+  walls = bestWalls;
+  radialWalls = bestRadial;
+  console.log(`[无限] 第${n}关 ${endlessFlavor.name}型 | score=${bestScore.toFixed(1)} (兜底, 目标≥${minScore}) | ${LAYERS}层`);
+}
+
 // ========== DRAWING ==========
 function drawMaze() {
   ctx.clearRect(0, 0, SIZE, SIZE);
@@ -1097,6 +1464,11 @@ function updateTimerDisplay() {
 let expandedGroups = {};
 
 function renderRecordsPanel() {
+  if (gameMode === 'endless') {
+    renderEndlessRecordsPanel();
+    return;
+  }
+
   const list = document.getElementById('records-list');
   let html = '';
   let totalTime = 0;
@@ -1143,7 +1515,69 @@ function renderRecordsPanel() {
   list.innerHTML = html;
   document.getElementById('total-time-val').textContent = hasAny ? formatTime(totalTime) : '--';
 
+  // Show/hide buttons for story mode
+  document.getElementById('records-panel').querySelector('h3').textContent = '通关记录';
+  document.getElementById('lb-btn').style.display = '';
+  document.getElementById('reset-btn').style.display = '';
+  document.getElementById('endless-btn').style.display = '';
+  document.getElementById('exit-endless-btn').style.display = 'none';
+  document.getElementById('reset-endless-btn').style.display = 'none';
+
   // Auto-scroll to current level
+  setTimeout(() => {
+    const cur = list.querySelector('.record-item.current');
+    if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, 50);
+}
+
+function renderEndlessRecordsPanel() {
+  const list = document.getElementById('records-list');
+  if (!endlessSave) endlessSave = loadEndlessSave();
+
+  let html = '';
+  html += '<div class="record-group">';
+  html += '<div class="record-group-header" style="cursor:default">';
+  html += '<span>第 ' + endlessN + ' 关</span>';
+  html += '<span class="progress">' + endlessFlavor.name + '型 · ' + LAYERS + '层</span>';
+  html += '</div>';
+  html += '</div>';
+
+  // Show recent records (last 20)
+  const startN = Math.max(1, endlessN - 19);
+  html += '<div class="record-group">';
+  html += '<div class="record-group-header" style="cursor:default"><span>最近记录</span><span class="progress">最高 ' + endlessSave.bestN + ' 关</span></div>';
+  html += '<div class="record-group-items">';
+  for (let i = startN; i <= endlessN; i++) {
+    const rec = endlessSave.records['' + i];
+    const isCurrent = (i === endlessN);
+    const cls = isCurrent ? ' current' : '';
+    const timeStr = rec !== undefined
+      ? '<span class="time">' + formatTime(rec) + '</span>'
+      : '<span class="time empty">--:--</span>';
+    html += '<div class="record-item' + cls + '"><span>第' + i + '关</span>' + timeStr + '</div>';
+  }
+  html += '</div></div>';
+
+  list.innerHTML = html;
+
+  // Total time for endless
+  let totalTime = 0;
+  let hasAny = false;
+  for (const k in endlessSave.records) {
+    totalTime += endlessSave.records[k];
+    hasAny = true;
+  }
+  document.getElementById('total-time-val').textContent = hasAny ? formatTime(totalTime) : '--';
+
+  // Show/hide buttons for endless mode
+  document.getElementById('records-panel').querySelector('h3').textContent = '无限模式';
+  document.getElementById('lb-btn').style.display = 'none';
+  document.getElementById('reset-btn').style.display = 'none';
+  document.getElementById('endless-btn').style.display = 'none';
+  document.getElementById('exit-endless-btn').style.display = '';
+  document.getElementById('reset-endless-btn').style.display = '';
+
+  // Auto-scroll
   setTimeout(() => {
     const cur = list.querySelector('.record-item.current');
     if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -1188,7 +1622,7 @@ function startLevel(major, minor) {
     walls = decoded.walls;
     radialWalls = decoded.radialWalls;
   } else {
-    generateMaze();
+    generateMazeWithDifficulty(major, minor);
     mapCache[mapKey] = encodeWalls(walls, radialWalls);
     saveMapCache(mapCache);
   }
@@ -1213,10 +1647,79 @@ function startLevel(major, minor) {
   requestAnimationFrame(gameLoop);
 }
 
+function startEndlessLevel(n) {
+  endlessN = n;
+  if (!endlessSave) endlessSave = loadEndlessSave();
+  endlessSave.currentN = n;
+  saveEndlessToDisk();
+
+  setupEndlessLevel(n);
+
+  // Map cache with "e-" prefix; keep only recent 30
+  const mapKey = 'e-' + n;
+  const cached = mapCache[mapKey];
+  if (cached) {
+    const decoded = decodeWalls(cached, LAYERS);
+    walls = decoded.walls;
+    radialWalls = decoded.radialWalls;
+  } else {
+    generateEndlessMaze(n);
+    mapCache[mapKey] = encodeWalls(walls, radialWalls);
+    // Clean old endless cache (keep last 30)
+    const eKeys = Object.keys(mapCache).filter(k => k.startsWith('e-')).map(k => parseInt(k.slice(2))).sort((a, b) => a - b);
+    while (eKeys.length > 30) {
+      delete mapCache['e-' + eKeys.shift()];
+    }
+    saveMapCache(mapCache);
+  }
+  cacheWallSegments();
+
+  player.x = CX; player.y = CY;
+  trail.length = 0;
+  won = false;
+  elapsedTime = 0;
+  lastFrameTime = 0;
+  timerStart = performance.now();
+  timerRunning = true;
+  isDragging = false;
+  mouseTarget = null;
+
+  document.getElementById('level-display').textContent = '无限 第' + n + '关 · ' + endlessFlavor.name + '型 · ' + LAYERS + '层';
+  document.getElementById('win-msg').style.display = 'none';
+  renderRecordsPanel();
+  requestAnimationFrame(gameLoop);
+}
+
 function onWin() {
   won = true;
   timerRunning = false;
   elapsedTime = (performance.now() - timerStart) / 1000;
+
+  if (gameMode === 'endless') {
+    const prevBest = endlessSave.records['' + endlessN];
+    saveEndlessRecord(endlessN, elapsedTime);
+
+    document.getElementById('win-level-text').textContent = '无限模式 第 ' + endlessN + ' 关（' + endlessFlavor.name + '型）';
+    document.getElementById('win-time-text').textContent = '用时 ' + formatTimePrecise(elapsedTime);
+
+    const bestEl = document.getElementById('win-best-text');
+    bestEl.style.color = '#aaa';
+    if (prevBest !== undefined && prevBest < elapsedTime) {
+      bestEl.textContent = '最佳记录 ' + formatTimePrecise(prevBest);
+    } else if (prevBest !== undefined && elapsedTime <= prevBest) {
+      bestEl.textContent = '新纪录！';
+      bestEl.style.color = '#00ff88';
+    } else {
+      bestEl.textContent = '';
+    }
+
+    document.getElementById('btn-next').textContent = '下一关';
+    document.getElementById('btn-next').onclick = nextEndlessLevel;
+
+    document.getElementById('win-msg').style.display = 'block';
+    renderRecordsPanel();
+    return;
+  }
 
   const key = currentMajor + '-' + currentMinor;
   const prevBest = saveData.records[key];
@@ -1254,6 +1757,10 @@ function onWin() {
 }
 
 function retryLevel() {
+  if (gameMode === 'endless') {
+    startEndlessLevel(endlessN);
+    return;
+  }
   startLevel(currentMajor, currentMinor);
 }
 
@@ -1267,6 +1774,348 @@ function nextLevel() {
     if (maj > MAX_MAJOR) return;
   }
   startLevel(maj, min);
+}
+
+function nextEndlessLevel() {
+  endlessN++;
+  if (!endlessSave) endlessSave = loadEndlessSave();
+  endlessSave.currentN = endlessN;
+  saveEndlessToDisk();
+  startEndlessLevel(endlessN);
+}
+
+// ========== FOG SYSTEM ==========
+let fogEnabled = false;
+
+// Fog base radius = ~2 corridor widths from player
+function getFogBaseRadius() {
+  if (RADII.length < 2) return SIZE * 0.2;
+  const corridorWidth = RADII[1] - RADII[0];
+  return corridorWidth * 2.5;
+}
+
+// Simple noise from layered sin waves (no external lib needed)
+function fogNoise(theta, t) {
+  return Math.sin(theta * 3 + t) * 0.3
+       + Math.sin(theta * 7 + t * 1.3) * 0.2
+       + Math.sin(theta * 13 + t * 0.7) * 0.1;
+}
+
+// Wind state machine
+const wind = {
+  state: 'calm',    // 'calm' | 'rising' | 'peak' | 'fading'
+  timer: 0,         // time remaining in current state
+  nextGust: 8 + Math.random() * 12, // seconds until next gust
+  direction: 0,     // radians
+  intensity: 0,     // 0-1, current animated intensity
+  targetIntensity: 0, // target (0.2-0.8)
+  peakDuration: 0,
+  fadeDuration: 0,
+  particles: [],    // wind visualization particles
+};
+
+function updateWind(dt) {
+  if (!fogEnabled) return;
+
+  switch (wind.state) {
+    case 'calm':
+      wind.nextGust -= dt;
+      if (wind.nextGust <= 0) {
+        // Start a gust
+        wind.state = 'rising';
+        wind.timer = 0.5; // 0.5s rise
+        wind.direction = Math.random() * Math.PI * 2;
+        wind.targetIntensity = 0.2 + Math.random() * 0.6; // 20%-80%
+        wind.peakDuration = 1 + Math.random() * 2; // 1-3s
+        wind.fadeDuration = 1 + Math.random(); // 1-2s
+        spawnWindParticles();
+      }
+      break;
+    case 'rising':
+      wind.timer -= dt;
+      wind.intensity += (wind.targetIntensity / 0.5) * dt;
+      if (wind.timer <= 0) {
+        wind.intensity = wind.targetIntensity;
+        wind.state = 'peak';
+        wind.timer = wind.peakDuration;
+      }
+      break;
+    case 'peak':
+      wind.timer -= dt;
+      wind.intensity = wind.targetIntensity;
+      if (wind.timer <= 0) {
+        wind.state = 'fading';
+        wind.timer = wind.fadeDuration;
+      }
+      break;
+    case 'fading':
+      wind.timer -= dt;
+      wind.intensity -= (wind.targetIntensity / wind.fadeDuration) * dt;
+      if (wind.timer <= 0 || wind.intensity <= 0) {
+        wind.intensity = 0;
+        wind.state = 'calm';
+        wind.nextGust = 3 + Math.random() * 7;
+      }
+      break;
+  }
+  wind.intensity = Math.max(0, Math.min(1, wind.intensity));
+
+  // Update wind particles
+  for (let i = wind.particles.length - 1; i >= 0; i--) {
+    const p = wind.particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) wind.particles.splice(i, 1);
+  }
+}
+
+function spawnWindParticles() {
+  const count = Math.floor(15 + wind.targetIntensity * 30); // 15-45 particles
+  const speed = 150 + wind.targetIntensity * 300; // 150-450 px/s
+  const vx = Math.cos(wind.direction) * speed;
+  const vy = Math.sin(wind.direction) * speed;
+  const totalLife = 0.5 + wind.peakDuration + wind.fadeDuration;
+
+  for (let i = 0; i < count; i++) {
+    // Start from random position across the canvas
+    const perpAngle = wind.direction + Math.PI / 2;
+    const perpDist = (Math.random() - 0.5) * SIZE;
+    const alongDist = (Math.random() - 0.5) * SIZE * 0.5;
+    wind.particles.push({
+      x: CX + Math.cos(perpAngle) * perpDist - Math.cos(wind.direction) * alongDist,
+      y: CY + Math.sin(perpAngle) * perpDist - Math.sin(wind.direction) * alongDist,
+      vx: vx * (0.7 + Math.random() * 0.6),
+      vy: vy * (0.7 + Math.random() * 0.6),
+      life: totalLife * (0.3 + Math.random() * 0.7),
+      maxLife: totalLife,
+      length: 8 + Math.random() * 16, // line length
+    });
+  }
+}
+
+function drawWindParticles() {
+  if (wind.particles.length === 0) return;
+  ctx.save();
+  for (const p of wind.particles) {
+    const alpha = (p.life / p.maxLife) * 0.4 * wind.intensity;
+    if (alpha <= 0) continue;
+    const angle = Math.atan2(p.vy, p.vx);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x - Math.cos(angle) * p.length, p.y - Math.sin(angle) * p.length);
+    ctx.strokeStyle = 'rgba(200,220,255,' + alpha.toFixed(3) + ')';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Offscreen canvas for fog mask (created lazily, resized with main canvas)
+let _fogCanvas = null, _fogCtx = null;
+function ensureFogCanvas() {
+  if (!_fogCanvas) {
+    _fogCanvas = document.createElement('canvas');
+    _fogCtx = _fogCanvas.getContext('2d');
+  }
+  if (_fogCanvas.width !== SIZE || _fogCanvas.height !== SIZE) {
+    _fogCanvas.width = SIZE;
+    _fogCanvas.height = SIZE;
+  }
+  return { fc: _fogCanvas, fctx: _fogCtx };
+}
+
+// Fog wisp particles for atmospheric mist effect
+let fogWisps = [];
+const MAX_WISPS = 40;
+
+function ensureFogWisps() {
+  while (fogWisps.length < MAX_WISPS) {
+    fogWisps.push(createFogWisp());
+  }
+}
+
+function createFogWisp() {
+  const angle = Math.random() * Math.PI * 2;
+  const dist = Math.random() * SIZE * 0.5;
+  return {
+    x: CX + Math.cos(angle) * dist,
+    y: CY + Math.sin(angle) * dist,
+    vx: (Math.random() - 0.5) * 8,
+    vy: (Math.random() - 0.5) * 8,
+    radius: 20 + Math.random() * 60,
+    opacity: 0.02 + Math.random() * 0.06,
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.3 + Math.random() * 0.7,
+  };
+}
+
+function updateFogWisps(dt) {
+  for (const w of fogWisps) {
+    w.x += w.vx * dt;
+    w.y += w.vy * dt;
+    // Add wind influence
+    if (wind.intensity > 0) {
+      w.x += Math.cos(wind.direction) * wind.intensity * 30 * dt;
+      w.y += Math.sin(wind.direction) * wind.intensity * 30 * dt;
+    }
+    // Wrap around
+    if (w.x < -w.radius) w.x = SIZE + w.radius;
+    if (w.x > SIZE + w.radius) w.x = -w.radius;
+    if (w.y < -w.radius) w.y = SIZE + w.radius;
+    if (w.y > SIZE + w.radius) w.y = -w.radius;
+  }
+}
+
+function drawFog(timestamp) {
+  if (!fogEnabled) return;
+
+  const t = timestamp * 0.001;
+  const baseR = getFogBaseRadius();
+  const noiseAmpBase = baseR * 0.08;
+  const noiseAmpWind = baseR * 0.3;
+
+  // Fog center stays on the player (no offset — directionality is via radius)
+  const fogCenterX = player.x;
+  const fogCenterY = player.y;
+
+  const steps = 64;
+  const angleStep = (Math.PI * 2) / steps;
+
+  // --- 1) Build fog mask on offscreen canvas ---
+  const { fc, fctx } = ensureFogCanvas();
+  fctx.clearRect(0, 0, SIZE, SIZE);
+
+  // Dark vignette overlay (the "hidden" area) — nearly opaque so map is invisible
+  fctx.fillStyle = 'rgba(8,10,20,0.98)';
+  fctx.fillRect(0, 0, SIZE, SIZE);
+
+  // Cut out clear zone using destination-out on the OFFSCREEN canvas
+  fctx.globalCompositeOperation = 'destination-out';
+
+  // Per-angle radius: downwind stretches far, upwind stays small
+  // cos(angle - windDir) = 1 at downwind, -1 at upwind
+  // dirFactor: downwind → big multiplier, upwind → ~1 (no change)
+  function getRadiusAtAngle(angle, rMul, tOffset) {
+    const cosA = Math.cos(angle - wind.direction); // -1 (upwind) to +1 (downwind)
+    // Map cosA to directional stretch: only positive side expands
+    // downwind (cosA=1): stretch = intensity * 5  (huge expansion)
+    // crosswind (cosA=0): stretch = intensity * 0.3 (slight)
+    // upwind (cosA=-1): stretch = 0 (no expansion)
+    const dirStretch = wind.intensity > 0
+      ? Math.max(0, cosA * 0.7 + 0.3) * wind.intensity * 5
+      : 0;
+    const effectiveR = baseR * (1 + dirStretch);
+    const noiseAmp = noiseAmpBase + wind.intensity * noiseAmpWind * (1 + Math.max(0, cosA));
+    const n = fogNoise(angle, t + tOffset) * noiseAmp;
+    return effectiveR * rMul + n;
+  }
+
+  function buildFogPath(rMul, tOffset) {
+    fctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const angle = i * angleStep;
+      const r = getRadiusAtAngle(angle, rMul, tOffset);
+      const px = fogCenterX + Math.cos(angle) * r;
+      const py = fogCenterY + Math.sin(angle) * r;
+      if (i === 0) fctx.moveTo(px, py);
+      else fctx.lineTo(px, py);
+    }
+    fctx.closePath();
+  }
+
+  // Core clear zone: fully erase inner area (alpha=1)
+  buildFogPath(0.55, 0);
+  fctx.fillStyle = 'rgba(0,0,0,1)';
+  fctx.fill();
+
+  // Transition rings: progressively weaker erase from inner to outer
+  const rings = 10;
+  for (let ring = 1; ring <= rings; ring++) {
+    const frac = ring / rings; // 0.1 → 1.0
+    const rMul = 0.55 + frac * 0.5; // 0.55 → 1.05
+    // Erase strength decreases as we go outward: inner rings erase more
+    const eraseAlpha = Math.pow(1 - frac, 1.5);
+    if (eraseAlpha < 0.01) continue;
+    buildFogPath(rMul, ring * 0.15);
+    fctx.fillStyle = 'rgba(0,0,0,' + eraseAlpha.toFixed(3) + ')';
+    fctx.fill();
+  }
+
+  fctx.globalCompositeOperation = 'source-over';
+
+  // --- 2) Composite fog mask onto main canvas ---
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(fc, 0, 0);
+  ctx.restore();
+
+  // --- 3) Atmospheric mist wisps (semi-transparent white/blue fog patches) ---
+  ensureFogWisps();
+  const wispFadeR = baseR * 1.2; // reference radius for wisp fade distance
+  ctx.save();
+  for (const w of fogWisps) {
+    const wdx = w.x - player.x, wdy = w.y - player.y;
+    const distToPlayer = Math.sqrt(wdx * wdx + wdy * wdy);
+    const fadeNear = Math.min(1, Math.max(0, (distToPlayer - wispFadeR * 0.4) / (wispFadeR * 0.5)));
+    if (fadeNear <= 0) continue;
+
+    const breathe = 0.5 + 0.5 * Math.sin(t * w.speed + w.phase);
+    const alpha = w.opacity * breathe * fadeNear;
+    if (alpha < 0.003) continue;
+
+    const grad = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, w.radius);
+    grad.addColorStop(0, 'rgba(180,200,220,' + (alpha * 1.2).toFixed(4) + ')');
+    grad.addColorStop(0.5, 'rgba(140,160,190,' + (alpha * 0.6).toFixed(4) + ')');
+    grad.addColorStop(1, 'rgba(100,120,160,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // --- 4) Wind particles ---
+  drawWindParticles();
+}
+
+function toggleFog() {
+  fogEnabled = !fogEnabled;
+  const btn = document.getElementById('fog-btn');
+  btn.textContent = fogEnabled ? '关闭迷雾' : '开启迷雾';
+  btn.style.borderColor = fogEnabled ? 'rgba(0,255,136,0.4)' : 'rgba(255,200,0,0.3)';
+  btn.style.color = fogEnabled ? '#00ff88' : '#ffc832';
+
+  wind.particles = [];
+  fogWisps = [];
+
+  if (fogEnabled) {
+    wind.state = 'calm';
+    wind.intensity = 0;
+    wind.nextGust = 3 + Math.random() * 7;
+  } else {
+    wind.state = 'calm';
+    wind.intensity = 0;
+  }
+  // Immediate redraw
+  drawMaze(); drawPlayer(); drawFog(performance.now());
+}
+
+// ========== ENDLESS MODE ENTRY/EXIT ==========
+function enterEndlessMode() {
+  gameMode = 'endless';
+  endlessSave = loadEndlessSave();
+  endlessN = endlessSave.currentN || 1;
+  endlessShuffleBag = endlessSave.shuffleBag || [];
+  endlessBagIndex = endlessSave.bagIndex || 0;
+  endlessFlavor = null; // Will be set by getEndlessConfig
+  startEndlessLevel(endlessN);
+}
+
+function exitEndlessMode() {
+  gameMode = 'story';
+  endlessFlavor = null;
+  startLevel(currentMajor, currentMinor);
 }
 
 // ========== INPUT: KEYBOARD ==========
@@ -1294,39 +2143,45 @@ document.addEventListener('touchend', () => { isDragging = false; mouseTarget = 
 
 // ========== GAME LOOP ==========
 function gameLoop(timestamp) {
-  if (won) return;
-
   if (!lastFrameTime) lastFrameTime = timestamp;
   const dt = Math.min((timestamp - lastFrameTime) / 1000, 0.05);
   lastFrameTime = timestamp;
-  const speed = MOVE_SPEED * dt;
 
-  let dx = 0, dy = 0;
-  if (keys['ArrowUp']) dy -= 1;
-  if (keys['ArrowDown']) dy += 1;
-  if (keys['ArrowLeft']) dx -= 1;
-  if (keys['ArrowRight']) dx += 1;
+  if (!won) {
+    const speed = MOVE_SPEED * dt;
 
-  if (dx !== 0 || dy !== 0) {
-    const len = Math.sqrt(dx * dx + dy * dy);
-    movePlayer((dx / len) * speed, (dy / len) * speed);
-  }
+    let dx = 0, dy = 0;
+    if (keys['ArrowUp']) dy -= 1;
+    if (keys['ArrowDown']) dy += 1;
+    if (keys['ArrowLeft']) dx -= 1;
+    if (keys['ArrowRight']) dx += 1;
 
-  if (isDragging && mouseTarget) {
-    const mx = mouseTarget.x - player.x, my = mouseTarget.y - player.y;
-    const md = Math.sqrt(mx * mx + my * my);
-    if (md > PLAYER_R) {
-      const move = Math.min(speed, md);
-      movePlayer((mx / md) * move, (my / md) * move);
+    if (dx !== 0 || dy !== 0) {
+      const len = Math.sqrt(dx * dx + dy * dy);
+      movePlayer((dx / len) * speed, (dy / len) * speed);
     }
+
+    if (isDragging && mouseTarget) {
+      const mx = mouseTarget.x - player.x, my = mouseTarget.y - player.y;
+      const md = Math.sqrt(mx * mx + my * my);
+      if (md > PLAYER_R) {
+        const move = Math.min(speed, md);
+        movePlayer((mx / md) * move, (my / md) * move);
+      }
+    }
+
+    pushOutOfWalls();
+    updateTimerDisplay();
   }
 
-  pushOutOfWalls();
-  updateTimerDisplay();
+  // Always update fog/wind and render (even after winning)
+  updateWind(dt);
+  if (fogEnabled) updateFogWisps(dt);
   drawMaze();
   drawPlayer();
+  drawFog(timestamp);
 
-  if (checkWin()) { onWin(); return; }
+  if (!won && checkWin()) { onWin(); }
   requestAnimationFrame(gameLoop);
 }
 
